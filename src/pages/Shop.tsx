@@ -2,8 +2,20 @@ import { useState } from "react";
 import { Search, Grid, List, Filter, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import Header from "@/components/Header";
 import FilterSidebar from "@/components/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
@@ -28,17 +40,17 @@ const Shop = () => {
       seller: { name: "Priya Sharma", rating: 4.8 },
       condition: "Excellent",
       size: "M",
-      category: "Kurta"
+      category: "Kurta",
     },
     {
-      id: "2", 
+      id: "2",
       title: "Traditional Japanese Kimono - Crane Pattern",
       price: 145,
       image: kimonoBurgundy,
       seller: { name: "Yuki Tanaka", rating: 4.9 },
       condition: "Like New",
       size: "L",
-      category: "Kimono"
+      category: "Kimono",
     },
     {
       id: "3",
@@ -48,7 +60,7 @@ const Shop = () => {
       seller: { name: "Kwame Asante", rating: 4.7 },
       condition: "Good",
       size: "L",
-      category: "Dashiki"
+      category: "Dashiki",
     },
     {
       id: "4",
@@ -58,7 +70,7 @@ const Shop = () => {
       seller: { name: "Maria Gonzalez", rating: 4.6 },
       condition: "Excellent",
       size: "S",
-      category: "Huipil"
+      category: "Huipil",
     },
     {
       id: "5",
@@ -68,7 +80,7 @@ const Shop = () => {
       seller: { name: "Raj Patel", rating: 4.5 },
       condition: "Excellent",
       size: "XL",
-      category: "Kurta"
+      category: "Kurta",
     },
     {
       id: "6",
@@ -78,14 +90,14 @@ const Shop = () => {
       seller: { name: "Sakura Miyamoto", rating: 4.9 },
       condition: "Like New",
       size: "M",
-      category: "Kimono"
-    }
+      category: "Kimono",
+    },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-6">
         {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
@@ -158,6 +170,10 @@ const Shop = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80">
+                <SheetTitle>Filter Options</SheetTitle>
+                <SheetDescription>
+                  Filter products by various criteria.
+                </SheetDescription>
                 <FilterSidebar />
               </SheetContent>
             </Sheet>
@@ -181,16 +197,15 @@ const Shop = () => {
             </div>
 
             {/* Products */}
-            <div className={
-              viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" 
-                : "space-y-4"
-            }>
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                  : "space-y-4"
+              }
+            >
               {products.map((product) => (
-                <ProductCard 
-                  key={product.id} 
-                  {...product}
-                />
+                <ProductCard key={product.id} {...product} />
               ))}
             </div>
 
