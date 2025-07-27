@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import authBackground from "@/assets/auth-background.jpg";
+import { auth } from "../firebaseConfig";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { firebaseErrorMessages } from "@/constants/errorMessages";
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -20,10 +25,19 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", formData);
+    setError(null); // Clear previous errors
+
+    try {
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      // Handle successful login (e.g., redirect to dashboard)
+      console.log("Login successful!");
+      navigate('/');
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setError(firebaseErrorMessages[error.code] || firebaseErrorMessages['default']);
+    }
   };
 
   return (
@@ -81,6 +95,8 @@ const Login = () => {
                     required
                   />
                 </div>
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
 
                 <Button 
                   type="submit" 

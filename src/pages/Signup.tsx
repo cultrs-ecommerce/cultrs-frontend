@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import authBackground from "@/assets/auth-background.jpg";
+import { auth } from "../firebaseConfig";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { firebaseErrorMessages } from "@/constants/errorMessages";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +16,8 @@ const Signup = () => {
     password: "",
     confirmPassword: ""
   });
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,14 +27,24 @@ const Signup = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle signup logic here
+    setError(null); // Clear previous errors
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+      setError("Passwords don't match!");
       return;
     }
-    console.log("Signup attempt:", formData);
+
+    try {
+      await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      // Handle successful signup (e.g., redirect to login or dashboard)
+      console.log("Signup successful!");
+      navigate('/');
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      setError(firebaseErrorMessages[error.code] || firebaseErrorMessages['default']);
+    }
   };
 
   return (
@@ -117,6 +132,8 @@ const Signup = () => {
                     required
                   />
                 </div>
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
 
                 <Button 
                   type="submit" 
