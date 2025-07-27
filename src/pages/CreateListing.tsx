@@ -32,12 +32,18 @@ import {
   categorySizeMap,
   Size, // Import the union type for Size
   shippingOptions,
-  ShippingOption
+  ShippingOption,
 } from "@/constants/productEnums";
 
 const listingSchema = z.object({
-  title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters").max(1000, "Description must be less than 1000 characters"),
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(100, "Title must be less than 100 characters"),
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters")
+    .max(1000, "Description must be less than 1000 characters"),
   price: z.string().min(1, "Price is required"),
   category: z.enum(categories), // Use z.enum with the imported categories array
   condition: z.enum(conditions), // Use z.enum with the imported conditions array
@@ -51,9 +57,24 @@ const listingSchema = z.object({
 type ListingFormData = z.infer<typeof listingSchema>;
 
 const tags = [
-  "wedding", "casual", "formal", "traditional", "jewelry", "south asian", 
-  "indian", "pakistani", "bangladeshi", "ethnic", "designer", "vintage",
-  "handmade", "silk", "cotton", "embroidered", "beaded", "festive"
+  "wedding",
+  "casual",
+  "formal",
+  "traditional",
+  "jewelry",
+  "south asian",
+  "indian",
+  "pakistani",
+  "bangladeshi",
+  "ethnic",
+  "designer",
+  "vintage",
+  "handmade",
+  "silk",
+  "cotton",
+  "embroidered",
+  "beaded",
+  "festive",
 ];
 
 export default function CreateListing() {
@@ -68,17 +89,19 @@ export default function CreateListing() {
       title: "",
       description: "",
       price: "",
-      category: "",
-      condition: "",
+      category: "" as any, // Type assertion to allow empty string
+      condition: "" as any, // Type assertion to allow empty string
       brand: "",
       material: "",
       careInstructions: "",
-      shippingInfo: "",
+      shippingInfo: "" as any, // Type assertion to allow empty string
     },
   });
 
-  const selectedCategory = form.watch('category');
-  const availableSizesForCategory = selectedCategory ? categorySizeMap[selectedCategory] : [];
+  const selectedCategory = form.watch("category");
+  const availableSizesForCategory = selectedCategory
+    ? categorySizeMap[selectedCategory]
+    : [];
 
   // Reset selected sizes when category changes
   useEffect(() => {
@@ -87,7 +110,7 @@ export default function CreateListing() {
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    
+
     if (images.length + files.length > 5) {
       toast.error("You can only upload up to 5 images");
       return;
@@ -97,34 +120,30 @@ export default function CreateListing() {
     setImages(newImages);
 
     // Create preview URLs
-    const newPreviews = files.map(file => URL.createObjectURL(file));
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
     setImagePreviews([...imagePreviews, ...newPreviews]);
   };
 
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    
+
     // Revoke the URL to free memory
     URL.revokeObjectURL(imagePreviews[index]);
-    
+
     setImages(newImages);
     setImagePreviews(newPreviews);
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag) 
-        : [...prev, tag]
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
 
   const toggleSize = (size: Size) => {
-    setSelectedSizes(prev => 
-      prev.includes(size) 
-        ? prev.filter(s => s !== size)
-        : [...prev, size]
+    setSelectedSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
     );
   };
 
@@ -140,8 +159,8 @@ export default function CreateListing() {
     }
 
     if (availableSizesForCategory.length > 0 && selectedSizes.length === 0) {
-       toast.error("Please select at least one size");
-       return;
+      toast.error("Please select at least one size");
+      return;
     }
 
     // Here you would typically send the data to your backend
@@ -149,7 +168,7 @@ export default function CreateListing() {
       ...data,
       tags: selectedTags,
       sizes: selectedSizes,
-      images: images // Note: This will be File objects, you'll upload these to Cloud Storage
+      images: images, // Note: This will be File objects, you'll upload these to Cloud Storage
       // You will replace 'images' with the Cloud Storage URLs after upload
     });
 
@@ -159,12 +178,16 @@ export default function CreateListing() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8 mt-16">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Create Your Listing</h1>
-            <p className="text-muted-foreground">Share your beautiful items with our community</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Create Your Listing
+            </h1>
+            <p className="text-muted-foreground">
+              Share your beautiful items with our community
+            </p>
           </div>
 
           <Form {...form}>
@@ -181,7 +204,10 @@ export default function CreateListing() {
                       <FormItem>
                         <FormLabel>Title *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter a descriptive title for your item" {...field} />
+                          <Input
+                            placeholder="Enter a descriptive title for your item"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -209,7 +235,10 @@ export default function CreateListing() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category *</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a category" />
@@ -236,7 +265,10 @@ export default function CreateListing() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Condition *</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select condition" />
@@ -262,7 +294,10 @@ export default function CreateListing() {
                         <FormItem>
                           <FormLabel>Brand/Designer</FormLabel>
                           <FormControl>
-                            <Input placeholder="Brand or designer name" {...field} />
+                            <Input
+                              placeholder="Brand or designer name"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -277,14 +312,15 @@ export default function CreateListing() {
                       <FormItem>
                         <FormLabel>Description *</FormLabel>
                         <FormControl>
-                          <Textarea 
+                          <Textarea
                             placeholder="Describe your item in detail - include measurements, special features, styling tips, etc."
                             className="min-h-[120px]"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormDescription>
-                          Provide detailed information about your item to help buyers make informed decisions.
+                          Provide detailed information about your item to help
+                          buyers make informed decisions.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -316,11 +352,13 @@ export default function CreateListing() {
                           </button>
                         </div>
                       ))}
-                      
-                      {images.length < 5 && (
+
+                      {images.length < 3 && (
                         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-primary transition-colors">
                           <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                          <span className="text-sm text-muted-foreground">Add Image</span>
+                          <span className="text-sm text-muted-foreground">
+                            Add Image
+                          </span>
                           <input
                             type="file"
                             multiple
@@ -332,7 +370,8 @@ export default function CreateListing() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Upload up to 5 high-quality images. The first image will be used as the main photo.
+                      Upload up to 3 high-quality images. The first image will
+                      be used as the main photo.
                     </p>
                   </div>
                 </CardContent>
@@ -344,13 +383,18 @@ export default function CreateListing() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <label className="text-sm font-medium mb-3 block">Tags *</label>
+                    <label className="text-sm font-medium mb-3 block">
+                      Tags *
+                    </label>
                     <div className="flex flex-wrap gap-2">
                       {tags.map((tag) => (
                         <Badge
                           key={tag}
-                          variant={selectedTags.includes(tag) ? "default" : "outline"}
-                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"                          onClick={() => toggleTag(tag)}
+                          variant={
+                            selectedTags.includes(tag) ? "default" : "outline"
+                          }
+                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                          onClick={() => toggleTag(tag)}
                         >
                           {tag}
                         </Badge>
@@ -363,13 +407,19 @@ export default function CreateListing() {
 
                   {availableSizesForCategory.length > 0 && (
                     <div>
-                      <label className="text-sm font-medium mb-3 block">Available Sizes *</label>
+                      <label className="text-sm font-medium mb-3 block">
+                        Available Sizes *
+                      </label>
                       <div className="flex flex-wrap gap-2">
                         {availableSizesForCategory.map((size) => (
                           <Button
                             key={size}
                             type="button"
-                            variant={selectedSizes.includes(size) ? "default" : "outline"}
+                            variant={
+                              selectedSizes.includes(size as Size)
+                                ? "default"
+                                : "outline"
+                            }
                             size="sm"
                             onClick={() => toggleSize(size as Size)} // Cast size to Size union type
                           >
@@ -397,7 +447,10 @@ export default function CreateListing() {
                       <FormItem>
                         <FormLabel>Material/Fabric</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., 100% Silk, Cotton Blend, Georgette" {...field} />
+                          <Input
+                            placeholder="e.g., 100% Silk, Cotton Blend, Georgette"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -411,9 +464,9 @@ export default function CreateListing() {
                       <FormItem>
                         <FormLabel>Care Instructions</FormLabel>
                         <FormControl>
-                          <Textarea 
+                          <Textarea
                             placeholder="How should this item be cared for? (e.g., Dry clean only, Hand wash cold, etc.)"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -427,20 +480,26 @@ export default function CreateListing() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Shipping Information</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select shipping option" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {shippingOptions.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                  {option.replace('_', ' ').replace(/w/g, l => l.toUpperCase())} {/* Format for display */}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select shipping option" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {shippingOptions.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option
+                                  .replace("_", " ")
+                                  .replace(/w/g, (l) => l.toUpperCase())}{" "}
+                                {/* Format for display */}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
