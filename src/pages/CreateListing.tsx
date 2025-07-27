@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,38 +26,29 @@ import {
 import { Upload, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
+import {
+  categories,
+  conditions,
+  categorySizeMap,
+  Size, // Import the union type for Size
+  shippingOptions,
+  ShippingOption
+} from "@/constants/productEnums";
 
 const listingSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
   description: z.string().min(10, "Description must be at least 10 characters").max(1000, "Description must be less than 1000 characters"),
   price: z.string().min(1, "Price is required"),
-  category: z.string().min(1, "Category is required"),
-  condition: z.string().min(1, "Condition is required"),
+  category: z.enum(categories), // Use z.enum with the imported categories array
+  condition: z.enum(conditions), // Use z.enum with the imported conditions array
   brand: z.string().optional(),
   material: z.string().optional(),
   careInstructions: z.string().optional(),
-  shippingInfo: z.string().optional(),
+  shippingInfo: z.enum(shippingOptions).optional(), // Use z.enum with shippingOptions
+  // Sizes validation will be handled dynamically based on category
 });
 
 type ListingFormData = z.infer<typeof listingSchema>;
-
-const categories = [
-  "Traditional Wear",
-  "Casual Wear", 
-  "Formal Wear",
-  "Jewelry",
-  "Accessories",
-  "Footwear",
-  "Home Decor"
-];
-
-const conditions = [
-  "New with tags",
-  "New without tags", 
-  "Like new",
-  "Good",
-  "Fair"
-];
 
 const tags = [
   "wedding", "casual", "formal", "traditional", "jewelry", "south asian", 
@@ -65,11 +56,9 @@ const tags = [
   "handmade", "silk", "cotton", "embroidered", "beaded", "festive"
 ];
 
-const sizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "One Size"];
-
 export default function CreateListing() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedSizes, setSelectedSizes] = useState<Size[]>([]); // Use the union type for selectedSizes
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
@@ -87,6 +76,14 @@ export default function CreateListing() {
       shippingInfo: "",
     },
   });
+
+  const selectedCategory = form.watch('category');
+  const availableSizesForCategory = selectedCategory ? categorySizeMap[selectedCategory] : [];
+
+  // Reset selected sizes when category changes
+  useEffect(() => {
+    setSelectedSizes([]);
+  }, [selectedCategory]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -118,12 +115,12 @@ export default function CreateListing() {
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
       prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
+        ? prev.filter(t => t !== tag) 
         : [...prev, tag]
     );
   };
 
-  const toggleSize = (size: string) => {
+  const toggleSize = (size: Size) => {
     setSelectedSizes(prev => 
       prev.includes(size) 
         ? prev.filter(s => s !== size)
@@ -142,9 +139,9 @@ export default function CreateListing() {
       return;
     }
 
-    if (selectedSizes.length === 0) {
-      toast.error("Please select at least one size");
-      return;
+    if (availableSizesForCategory.length > 0 && selectedSizes.length === 0) {
+       toast.error("Please select at least one size");
+       return;
     }
 
     // Here you would typically send the data to your backend
@@ -152,7 +149,8 @@ export default function CreateListing() {
       ...data,
       tags: selectedTags,
       sizes: selectedSizes,
-      images: images
+      images: images // Note: This will be File objects, you'll upload these to Cloud Storage
+      // You will replace 'images' with the Cloud Storage URLs after upload
     });
 
     toast.success("Listing created successfully!");
@@ -342,7 +340,7 @@ export default function CreateListing() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Tags & Categories</CardTitle>
+                  <CardTitle>Tags & Sizes</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
@@ -352,8 +350,7 @@ export default function CreateListing() {
                         <Badge
                           key={tag}
                           variant={selectedTags.includes(tag) ? "default" : "outline"}
-                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                          onClick={() => toggleTag(tag)}
+                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"                          onClick={() => toggleTag(tag)}
                         >
                           {tag}
                         </Badge>
@@ -364,25 +361,27 @@ export default function CreateListing() {
                     </p>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium mb-3 block">Available Sizes *</label>
-                    <div className="flex flex-wrap gap-2">
-                      {sizes.map((size) => (
-                        <Button
-                          key={size}
-                          type="button"
-                          variant={selectedSizes.includes(size) ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => toggleSize(size)}
-                        >
-                          {size}
-                        </Button>
-                      ))}
+                  {availableSizesForCategory.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium mb-3 block">Available Sizes *</label>
+                      <div className="flex flex-wrap gap-2">
+                        {availableSizesForCategory.map((size) => (
+                          <Button
+                            key={size}
+                            type="button"
+                            variant={selectedSizes.includes(size) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSize(size as Size)} // Cast size to Size union type
+                          >
+                            {size}
+                          </Button>
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Select all sizes available for this item.
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Select all sizes available for this item.
-                    </p>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -428,12 +427,20 @@ export default function CreateListing() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Shipping Information</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Any special shipping requirements or timeframes?"
-                            {...field} 
-                          />
-                        </FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select shipping option" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {shippingOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option.replace('_', ' ').replace(/w/g, l => l.toUpperCase())} {/* Format for display */}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         <FormMessage />
                       </FormItem>
                     )}
