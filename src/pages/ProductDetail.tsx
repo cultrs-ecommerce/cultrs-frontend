@@ -13,13 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
 import { db } from "@/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { Product } from "@/types/Product";
+import { User as UserType } from "@/types/User";
 
 // Sample data for similar products and reviews (can be replaced with dynamic data)
 import kimonoBurgundy from "@/assets/kimono-burgundy.jpg";
@@ -31,7 +32,7 @@ const similarProducts = [
     title: "Traditional Japanese Kimono",
     price: 145,
     image: kimonoBurgundy,
-    seller: { name: "Yuki Tanaka", rating: 4.9 },
+    seller: { name: "Yuki Tanaka", rating: 4.9, avatar: "" },
     condition: "Like New",
     size: "L",
     category: "Kimono",
@@ -41,7 +42,7 @@ const similarProducts = [
     title: "African Dashiki Shirt",
     price: 65,
     image: dashikiOrange,
-    seller: { name: "Kwame Asante", rating: 4.7 },
+    seller: { name: "Kwame Asante", rating: 4.7, avatar: "" },
     condition: "Good",
     size: "L",
     category: "Dashiki",
@@ -70,31 +71,71 @@ const reviews = [
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
+  const [seller, setSeller] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchProductAndSeller = async () => {
       if (!id) return;
+      setLoading(true);
       try {
-        const docRef = doc(db, "products", id);
-        const docSnap = await getDoc(docRef);
+        // Fetch Product
+        const productDocRef = doc(db, "products", id);
+        const productDocSnap = await getDoc(productDocRef);
 
-        if (docSnap.exists()) {
-          setProduct({ id: docSnap.id, ...docSnap.data() } as Product);
+        if (productDocSnap.exists()) {
+          const productData = {
+            id: productDocSnap.id,
+            ...productDocSnap.data(),
+          } as Product;
+          setProduct(productData);
+
+          // Fetch Seller
+          if (productData.owner_id) {
+            const sellerDocRef = doc(db, "users", productData.owner_id);
+            const sellerDocSnap = await getDoc(sellerDocRef);
+            if (sellerDocSnap.exists()) {
+              setSeller({
+                id: sellerDocSnap.id,
+                ...sellerDocSnap.data(),
+              } as UserType);
+            } else {
+              setSeller({
+                id: "unknown",
+                name: "Unknown Seller",
+                email: "",
+                listedProducts: [],
+                rating: 0,
+                reviewsCount: 0,
+                itemsSold: 0,
+                createdAt: Timestamp.now(),
+              });
+            }
+          } else {
+            setSeller({
+              id: "unknown",
+              name: "Unknown Seller",
+              email: "",
+              listedProducts: [],
+              rating: 0,
+              reviewsCount: 0,
+              itemsSold: 0,
+              createdAt: Timestamp.now(),
+            });
+          }
         } else {
-          console.log("No such document!");
-          // Handle product not found
+          console.log("No such product!");
         }
       } catch (error) {
-        console.error("Error fetching product:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProduct();
+    fetchProductAndSeller();
   }, [id]);
 
   if (loading) {
@@ -122,22 +163,11 @@ const ProductDetail = () => {
     );
   }
 
-  const seller = {
-    // Placeholder seller data
-    name: "Priya Sharma",
-    rating: 4.8,
-    reviews: 127,
-    avatar: "",
-    joinedDate: "2022",
-    location: "Mumbai, India",
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <div className="container mx-auto px-4 py-6">
-        {/* Back Button */}
         <Link
           to="/shop"
           className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6 transition-smooth"
@@ -157,14 +187,15 @@ const ProductDetail = () => {
               />
             </div>
 
-            {/* Thumbnail Images */}
             <div className="flex space-x-2">
               {product.imageUrls.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
                   className={`w-20 h-20 rounded-md overflow-hidden border-2 transition-smooth ${
-                    selectedImage === index ? "border-primary" : "border-border"
+                    selectedImage === index
+                      ? "border-primary"
+                      : "border-border"
                   }`}
                 >
                   <img
@@ -221,7 +252,9 @@ const ProductDetail = () => {
                 <span className="font-medium">Condition:</span>
                 <Badge
                   variant={
-                    product.condition === "Good" ? "default" : "secondary"
+                    product.condition === "Good"
+                      ? "default"
+                      : "secondary"
                   }
                 >
                   {product.condition}
@@ -266,32 +299,37 @@ const ProductDetail = () => {
         </div>
 
         {/* Seller Info */}
-        <Card className="p-6 mb-8">
-          <h3 className="text-lg font-semibold mb-4">Seller Information</h3>
-          <div className="flex items-start space-x-4">
-            <Avatar className="w-16 h-16">
-              <AvatarFallback>
-                <User className="h-8 w-8" />
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h4 className="font-semibold text-lg">{seller.name}</h4>
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 fill-accent text-accent" />
-                  <span className="ml-1 font-medium">{seller.rating}</span>
+        {seller && (
+          <Card className="p-6 mb-8">
+            <h3 className="text-lg font-semibold mb-4">Seller Information</h3>
+            <div className="flex items-start space-x-4">
+              <Avatar className="w-16 h-16">
+                <AvatarImage src={seller.profilePictureUrl} />
+                <AvatarFallback>
+                  <User className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h4 className="font-semibold text-lg">{seller.name}</h4>
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 fill-accent text-accent" />
+                    <span className="ml-1 font-medium">{seller.rating}</span>
+                  </div>
+                  <span className="text-muted-foreground">
+                    ({seller.reviewsCount} reviews)
+                  </span>
                 </div>
-                <span className="text-muted-foreground">
-                  ({seller.reviews} reviews)
-                </span>
+                <p className="text-muted-foreground text-sm">
+                  {seller.location
+                    ? `From ${seller.location}`
+                    : "Location not specified"}
+                </p>
               </div>
-              <p className="text-muted-foreground text-sm">
-                Joined {seller.joinedDate} • {seller.location}
-              </p>
+              <Button variant="outline">View Profile</Button>
             </div>
-            <Button variant="outline">View Profile</Button>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         {/* Product Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
@@ -308,6 +346,12 @@ const ProductDetail = () => {
                   <span>{product.material}</span>
                 </div>
               )}
+              {product.brand && (
+                <div className="flex justify-between">
+                  <span className="font-medium">Brand:</span>
+                  <span>{product.brand}</span>
+                </div>
+              )}
               {product.careInstructions && (
                 <div className="flex justify-between">
                   <span className="font-medium">Care:</span>
@@ -320,7 +364,7 @@ const ProductDetail = () => {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Measurements</h3>
             <p className="text-muted-foreground">
-              No measurement data available.
+              No measurement data available for this item.
             </p>
           </Card>
         </div>

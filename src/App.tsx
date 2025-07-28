@@ -10,6 +10,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import CreateListing from "./pages/CreateListing";
 import NotFound from "./pages/NotFound";
+import CompleteProfile from "./pages/CompleteProfile";
+import Logout from "./pages/Logout";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +28,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/sell" element={<CreateListing />} />
+          <Route path="/complete-profile" element={<CompleteProfile />} />
+          <Route path="/logout" element={<Logout />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
