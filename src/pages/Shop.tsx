@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Grid, List, Filter, SlidersHorizontal } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Grid, List, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,81 +19,36 @@ import {
 import Header from "@/components/Header";
 import FilterSidebar from "@/components/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
-
-// Import generated images
-import kurtaGreen from "@/assets/kurta-green.jpg";
-import kimonoBurgundy from "@/assets/kimono-burgundy.jpg";
-import dashikiOrange from "@/assets/dashiki-orange.jpg";
-import huipilWhite from "@/assets/huipil-white.jpg";
+import { db } from "@/firebaseConfig";
+import { collection, getDocs } from "firebase/firestore";
+import { Product } from "@/types/Product";
 
 const Shop = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample products data
-  const products = [
-    {
-      id: "1",
-      title: "Vintage Silk Kurta with Intricate Embroidery",
-      price: 89,
-      image: kurtaGreen,
-      seller: { name: "Priya Sharma", rating: 4.8 },
-      condition: "Excellent",
-      size: "M",
-      category: "Kurta",
-    },
-    {
-      id: "2",
-      title: "Traditional Japanese Kimono - Crane Pattern",
-      price: 145,
-      image: kimonoBurgundy,
-      seller: { name: "Yuki Tanaka", rating: 4.9 },
-      condition: "Like New",
-      size: "L",
-      category: "Kimono",
-    },
-    {
-      id: "3",
-      title: "Authentic African Dashiki - Geometric Design",
-      price: 65,
-      image: dashikiOrange,
-      seller: { name: "Kwame Asante", rating: 4.7 },
-      condition: "Good",
-      size: "L",
-      category: "Dashiki",
-    },
-    {
-      id: "4",
-      title: "Hand-Embroidered Mexican Huipil",
-      price: 95,
-      image: huipilWhite,
-      seller: { name: "Maria Gonzalez", rating: 4.6 },
-      condition: "Excellent",
-      size: "S",
-      category: "Huipil",
-    },
-    {
-      id: "5",
-      title: "Royal Blue Silk Kurta - Wedding Edition",
-      price: 120,
-      image: kurtaGreen,
-      seller: { name: "Raj Patel", rating: 4.5 },
-      condition: "Excellent",
-      size: "XL",
-      category: "Kurta",
-    },
-    {
-      id: "6",
-      title: "Cherry Blossom Kimono - Spring Collection",
-      price: 165,
-      image: kimonoBurgundy,
-      seller: { name: "Sakura Miyamoto", rating: 4.9 },
-      condition: "Like New",
-      size: "M",
-      category: "Kimono",
-    },
-  ];
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "products"));
+        const productsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Product[];
+        setProducts(productsData);
+      } catch (error) {
+        console.error("Error fetching products: ", error);
+        // Handle error (e.g., show a toast message)
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchProducts();
+  }, []);
+  
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -197,17 +152,31 @@ const Shop = () => {
             </div>
 
             {/* Products */}
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                  : "space-y-4"
-              }
-            >
-              {products.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))}
-            </div>
+            {loading ? (
+              <p>Loading...</p>
+            ) : (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                    : "space-y-4"
+                }
+              >
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    title={product.title}
+                    price={product.price}
+                    image={product.imageUrls[0]}
+                    seller={{ name: "Seller", rating: 5.0 }} // Placeholder
+                    condition={product.condition}
+                    size={product.sizes[0]} // Display the first size
+                    category={product.category}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Load More */}
             <div className="text-center mt-12">

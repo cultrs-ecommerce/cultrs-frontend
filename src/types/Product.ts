@@ -18,6 +18,7 @@ export interface Product {
   material?: string; // string (optional)
   createdAt: Timestamp; // Firestore timestamp
   updatedAt: Timestamp; // Firestore timestamp
+  careInstructions?: string;
   status: 'active' | 'sold' | 'draft' | 'paused'; // string (track listing status)
   likesCount: number; // number (to track likes/favorites)
   viewsCount: number; // number (to track views)

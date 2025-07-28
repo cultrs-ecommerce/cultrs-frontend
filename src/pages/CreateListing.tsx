@@ -23,17 +23,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, X, Plus } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import {
   categories,
   conditions,
   categorySizeMap,
-  Size, // Import the union type for Size
+  Size,
   shippingOptions,
-  ShippingOption,
 } from "@/constants/productEnums";
+import { createProduct } from "@/controllers/productController";
+import { useNavigate } from "react-router-dom";
+import { auth } from "@/firebaseConfig";
+import { Product } from "@/types/Product";
 
 const listingSchema = z.object({
   title: z
@@ -44,17 +47,28 @@ const listingSchema = z.object({
     .string()
     .min(10, "Description must be at least 10 characters")
     .max(1000, "Description must be less than 1000 characters"),
-  price: z.string().min(1, "Price is required"),
-  category: z.enum(categories), // Use z.enum with the imported categories array
-  condition: z.enum(conditions), // Use z.enum with the imported conditions array
+  price: z.preprocess(
+    (val) => parseFloat(String(val)),
+    z.number().min(0.01, "Price must be a positive number")
+  ),
+  category: z.enum(categories),
+  condition: z.enum(conditions),
   brand: z.string().optional(),
   material: z.string().optional(),
   careInstructions: z.string().optional(),
-  shippingInfo: z.enum(shippingOptions).optional(), // Use z.enum with shippingOptions
-  // Sizes validation will be handled dynamically based on category
+  shippingInfo: z.enum(shippingOptions),
 });
 
 type ListingFormData = z.infer<typeof listingSchema>;
+type ProductDataWithoutImages = Omit<
+  Product,
+  | "imageUrls"
+  | "createdAt"
+  | "updatedAt"
+  | "status"
+  | "likesCount"
+  | "viewsCount"
+>;
 
 const tags = [
   "wedding",
@@ -78,8 +92,9 @@ const tags = [
 ];
 
 export default function CreateListing() {
+  const navigate = useNavigate();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<Size[]>([]); // Use the union type for selectedSizes
+  const [selectedSizes, setSelectedSizes] = useState<Size[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
@@ -88,13 +103,13 @@ export default function CreateListing() {
     defaultValues: {
       title: "",
       description: "",
-      price: "",
-      category: "" as any, // Type assertion to allow empty string
-      condition: "" as any, // Type assertion to allow empty string
+      price: undefined,
+      category: undefined,
+      condition: undefined,
       brand: "",
       material: "",
       careInstructions: "",
-      shippingInfo: "" as any, // Type assertion to allow empty string
+      shippingInfo: undefined,
     },
   });
 
@@ -103,7 +118,6 @@ export default function CreateListing() {
     ? categorySizeMap[selectedCategory]
     : [];
 
-  // Reset selected sizes when category changes
   useEffect(() => {
     setSelectedSizes([]);
   }, [selectedCategory]);
@@ -119,7 +133,6 @@ export default function CreateListing() {
     const newImages = [...images, ...files];
     setImages(newImages);
 
-    // Create preview URLs
     const newPreviews = files.map((file) => URL.createObjectURL(file));
     setImagePreviews([...imagePreviews, ...newPreviews]);
   };
@@ -127,10 +140,7 @@ export default function CreateListing() {
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
-
-    // Revoke the URL to free memory
     URL.revokeObjectURL(imagePreviews[index]);
-
     setImages(newImages);
     setImagePreviews(newPreviews);
   };
@@ -147,7 +157,7 @@ export default function CreateListing() {
     );
   };
 
-  const onSubmit = (data: ListingFormData) => {
+  const onSubmit = async (data: ListingFormData) => {
     if (images.length === 0) {
       toast.error("Please add at least one image");
       return;
@@ -163,22 +173,41 @@ export default function CreateListing() {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    console.log({
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast.error("You must be logged in to create a listing.");
+      return;
+    }
+    const ownerId = currentUser.uid;
+
+    const productData: ProductDataWithoutImages = {
       ...data,
       tags: selectedTags,
       sizes: selectedSizes,
-      images: images, // Note: This will be File objects, you'll upload these to Cloud Storage
-      // You will replace 'images' with the Cloud Storage URLs after upload
-    });
+      owner_id: ownerId,
+      title: data.title ?? "",
+      price: data.price ?? 0,
+      category: data.category ?? categories[0],
+      condition: data.condition ?? conditions[0],
+      brand: data.brand ?? "",
+      description: data.description ?? "",
+      material: data.material ?? "",
+      shippingInfo: data.shippingInfo ?? shippingOptions[0],
+    };
 
-    toast.success("Listing created successfully!");
+    try {
+      await createProduct(productData, images);
+      toast.success("Listing created successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error("Error creating listing:", error);
+      toast.error("Failed to create listing. Please try again.");
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
       <div className="container mx-auto px-4 py-8 mt-16">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
@@ -189,7 +218,6 @@ export default function CreateListing() {
               Share your beautiful items with our community
             </p>
           </div>
-
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <Card>
@@ -213,7 +241,6 @@ export default function CreateListing() {
                       </FormItem>
                     )}
                   />
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -222,13 +249,17 @@ export default function CreateListing() {
                         <FormItem>
                           <FormLabel>Price *</FormLabel>
                           <FormControl>
-                            <Input placeholder="$0.00" {...field} />
+                            <Input
+                              type="number"
+                              placeholder="$0.00"
+                              {...field}
+                              value={field.value ?? ""}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="category"
@@ -237,7 +268,7 @@ export default function CreateListing() {
                           <FormLabel>Category *</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            value={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -257,7 +288,6 @@ export default function CreateListing() {
                       )}
                     />
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -267,7 +297,7 @@ export default function CreateListing() {
                           <FormLabel>Condition *</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            value={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -286,7 +316,6 @@ export default function CreateListing() {
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="brand"
@@ -304,7 +333,6 @@ export default function CreateListing() {
                       )}
                     />
                   </div>
-
                   <FormField
                     control={form.control}
                     name="description"
@@ -328,7 +356,6 @@ export default function CreateListing() {
                   />
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>Images</CardTitle>
@@ -352,8 +379,7 @@ export default function CreateListing() {
                           </button>
                         </div>
                       ))}
-
-                      {images.length < 3 && (
+                      {images.length < 5 && (
                         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-primary transition-colors">
                           <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                           <span className="text-sm text-muted-foreground">
@@ -370,13 +396,12 @@ export default function CreateListing() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Upload up to 3 high-quality images. The first image will
+                      Upload up to 5 high-quality images. The first image will
                       be used as the main photo.
                     </p>
                   </div>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>Tags & Sizes</CardTitle>
@@ -404,7 +429,6 @@ export default function CreateListing() {
                       Select relevant tags to help buyers find your item.
                     </p>
                   </div>
-
                   {availableSizesForCategory.length > 0 && (
                     <div>
                       <label className="text-sm font-medium mb-3 block">
@@ -421,7 +445,7 @@ export default function CreateListing() {
                                 : "outline"
                             }
                             size="sm"
-                            onClick={() => toggleSize(size as Size)} // Cast size to Size union type
+                            onClick={() => toggleSize(size as Size)}
                           >
                             {size}
                           </Button>
@@ -434,7 +458,6 @@ export default function CreateListing() {
                   )}
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>Additional Details</CardTitle>
@@ -456,7 +479,6 @@ export default function CreateListing() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="careInstructions"
@@ -473,7 +495,6 @@ export default function CreateListing() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="shippingInfo"
@@ -482,7 +503,7 @@ export default function CreateListing() {
                         <FormLabel>Shipping Information</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -494,8 +515,7 @@ export default function CreateListing() {
                               <SelectItem key={option} value={option}>
                                 {option
                                   .replace("_", " ")
-                                  .replace(/w/g, (l) => l.toUpperCase())}{" "}
-                                {/* Format for display */}
+                                  .replace(/ w/g, (l) => l.toUpperCase())}{" "}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -506,7 +526,6 @@ export default function CreateListing() {
                   />
                 </CardContent>
               </Card>
-
               <div className="flex justify-end space-x-4">
                 <Button type="button" variant="outline">
                   Save as Draft
