@@ -1,0 +1,14 @@
+[
+  {
+    "origin": [
+      "https://9000-firebase-cultrs-frontendgit-1753596549575.cluster-t23zgfo255e32uuvburngnfnn4.cloudworkstations.dev",
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:8000",
+      "http://localhost:8080"
+    ],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "responseHeader": ["*"],
+    "maxAgeSeconds": 3600
+  }
+]
