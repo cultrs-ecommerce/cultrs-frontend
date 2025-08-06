@@ -161,14 +161,14 @@ const Profile = () => {
                 </Avatar>
                 
                 <div className="flex-1">
-                  <CardTitle className="text-2xl mb-2">{user.name}</CardTitle>
-                  <CardDescription className="text-base mb-4">{user.email}</CardDescription>
-                  
+                  <CardTitle className="text-2xl mb-2">{user.name || "User"}</CardTitle>
+                  <CardDescription className="text-base mb-4">{user.email || currentUser.email}</CardDescription>
+
                   <div className="flex items-center space-x-6">
                     <div className="flex items-center space-x-2">
                       <Star className="h-4 w-4 text-yellow-500" />
-                      <span className="font-medium">{user.rating.toFixed(1)}</span>
-                      <span className="text-muted-foreground">({user.reviewsCount} reviews)</span>
+                      <span className="font-medium">{(user.rating || 0).toFixed(1)}</span>
+                      <span className="text-muted-foreground">({user.reviewsCount || 0} reviews)</span>
                     </div>
                     
                     {user.location && (
