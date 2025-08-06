@@ -4,6 +4,8 @@ import {
   useState,
   useEffect,
   ReactNode,
+  Dispatch,
+  SetStateAction,
 } from "react";
 import { auth, db } from "@/firebaseConfig";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
@@ -14,6 +16,7 @@ interface AuthContextType {
   currentUser: FirebaseUser | null;
   user: User | null;
   loading: boolean;
+  setUser: Dispatch<SetStateAction<User | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ currentUser, user, loading }}>
+    <AuthContext.Provider value={{ currentUser, user, loading, setUser }}>
       {children}
     </AuthContext.Provider>
   );
