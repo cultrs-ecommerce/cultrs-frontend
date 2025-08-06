@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { updateUser } from "@/controllers/userController";
 import { User } from "@/types/User";
+import ImageUpload from "@/components/ImageUpload";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -37,7 +38,9 @@ const EditProfileModal = ({
   const { user, currentUser } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -46,12 +49,6 @@ const EditProfileModal = ({
       setEmail(user.email || "");
     }
   }, [user]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePicture(e.target.files[0]);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!currentUser || !user) {
@@ -63,8 +60,8 @@ const EditProfileModal = ({
 
     try {
       let profilePictureUrl = user.profilePictureUrl;
-      if (profilePicture) {
-        profilePictureUrl = await toBase64(profilePicture);
+      if (profilePictureFile) {
+        profilePictureUrl = await toBase64(profilePictureFile);
       }
 
       await updateUser(currentUser.uid, {
@@ -96,6 +93,10 @@ const EditProfileModal = ({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <ImageUpload
+            onFileChange={setProfilePictureFile}
+            initialImageUrl={user?.profilePictureUrl}
+          />
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -111,15 +112,6 @@ const EditProfileModal = ({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="profilePicture">Profile Picture</Label>
-            <Input
-              id="profilePicture"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
             />
           </div>
         </div>

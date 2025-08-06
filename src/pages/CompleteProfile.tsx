@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { updateUserProfile } from "@/controllers/userController";
 import { toast } from "sonner";
+import ImageUpload from "@/components/ImageUpload";
 
 // Helper function to convert file to base64
 const toBase64 = (file: File): Promise<string> =>
@@ -29,12 +30,6 @@ const CompleteProfile = () => {
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePicture(e.target.files[0]);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +71,8 @@ const CompleteProfile = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <ImageUpload onFileChange={setProfilePicture} />
+
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Input
@@ -85,18 +82,6 @@ const CompleteProfile = () => {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g., New York, USA"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="profilePicture">Profile Picture</Label>
-              <Input
-                id="profilePicture"
-                name="profilePicture"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
                 className="w-full"
               />
             </div>
