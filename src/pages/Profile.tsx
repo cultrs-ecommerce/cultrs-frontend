@@ -31,6 +31,7 @@ const Profile = () => {
   const [recentComments, setRecentComments] = useState<any[]>([]);
 
   useEffect(() => {
+    console.log(user);
     if (user) {
       fetchUserProducts();
       // For now, we'll simulate recent comments since there's no comments collection
