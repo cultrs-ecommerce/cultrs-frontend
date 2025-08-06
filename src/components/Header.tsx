@@ -1,14 +1,22 @@
-import { Search, ShoppingCart, User, Heart } from "lucide-react";
+import { Search, ShoppingCart, User, Heart, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { auth } from "../firebaseConfig";
-import { User as FirebaseUser } from "firebase/auth";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header = () => {
   const [isAtTop, setIsAtTop] = useState(true);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const { currentUser, user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,13 +27,8 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  console.log("header: " + JSON.stringify
+    (currentUser));
 
   return (
     <header className={`sticky top-0 z-50 border-b transition-smooth ${
@@ -81,14 +84,55 @@ const Header = () => {
             <Button variant="ghost" size="icon">
               <ShoppingCart className="h-5 w-5" />
             </Button>
-            <Link to={user ? "#" : "/login"}>
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
+            {currentUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user?.profilePictureUrl} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email || currentUser.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Account Details</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/logout" className="cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
+            <Link to="/sell">
+              <Button variant="default" size="sm" className="hidden md:flex">
+                Sell Now
               </Button>
             </Link>
-            <Button variant="default" size="sm" className="hidden md:flex">
-              Sell Now
-            </Button>
           </div>
         </div>
 
