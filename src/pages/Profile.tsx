@@ -180,7 +180,7 @@ const Profile = () => {
                     
                     <div className="flex items-center space-x-1">
                       <Package className="h-4 w-4 text-muted-foreground" />
-                      <span>{user.itemsSold} items sold</span>
+                      <span>{user.itemsSold || 0} items sold</span>
                     </div>
                   </div>
                 </div>
