@@ -127,8 +127,20 @@ const Profile = () => {
     );
   }
 
-  if (!currentUser || !user) {
+  if (!currentUser) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If currentUser exists but user data is still loading from Firestore
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Loading Profile...</h1>
+          <p className="text-muted-foreground">Please wait while we load your profile data.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
