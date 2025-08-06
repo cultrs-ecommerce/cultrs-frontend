@@ -17,16 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const Header = () => {
   const [isAtTop, setIsAtTop] = useState(true);
   const { currentUser, user } = useAuth();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsAtTop(window.scrollY === 0);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
+  
   return (
     <header className={`sticky top-0 z-50 border-b transition-smooth ${
       isAtTop 
