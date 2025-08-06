@@ -27,7 +27,8 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  console.log("header: " + currentUser);
+  console.log("header: " + JSON.stringify
+    (currentUser));
 
   return (
     <header className={`sticky top-0 z-50 border-b transition-smooth ${
