@@ -125,9 +125,11 @@ const Header = () => {
                 </Button>
               </Link>
             )}
-            <Button variant="default" size="sm" className="hidden md:flex">
-              Sell Now
-            </Button>
+            <Link to="/sell">
+              <Button variant="default" size="sm" className="hidden md:flex">
+                Sell Now
+              </Button>
+            </Link>
           </div>
         </div>
 
