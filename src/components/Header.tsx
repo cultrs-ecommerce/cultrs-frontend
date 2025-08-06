@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header = () => {
   const [isAtTop, setIsAtTop] = useState(true);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const { currentUser, user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,14 +25,6 @@ const Header = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser);
-    });
-
-    return () => unsubscribe();
   }, []);
 
   return (
