@@ -123,6 +123,10 @@
 }
 
 @layer components {
+  .container {
+    @apply w-[95%] mx-auto;
+  }
+  
   /* Custom component styles using design system */
   .hero-gradient {
     background: var(--gradient-hero);
