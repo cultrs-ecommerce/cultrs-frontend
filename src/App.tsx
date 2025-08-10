@@ -14,6 +14,8 @@ import NotFound from "./pages/NotFound";
 import CompleteProfile from "./pages/CompleteProfile";
 import Profile from "./pages/Profile";
 import Logout from "./pages/Logout";
+import ChatPage from "./pages/Chat";
+import ChatList from "./components/ChatList";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/logout" element={<Logout />} />
+            <Route path="/chat/:chatId" element={<ChatPage />} />
+            <Route path="/chats" element={<ChatList />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

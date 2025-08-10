@@ -14,13 +14,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
 import { db } from "@/firebaseConfig";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { Product } from "@/types/Product";
 import { User as UserType } from "@/types/User";
+import { useAuth } from "@/hooks/useAuth";
+import { createChat } from "@/controllers/chatController";
 
 // Sample data for similar products and reviews (can be replaced with dynamic data)
 import kimonoBurgundy from "@/assets/kimono-burgundy.jpg";
@@ -75,6 +77,8 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProductAndSeller = async () => {
@@ -138,6 +142,18 @@ const ProductDetail = () => {
     fetchProductAndSeller();
   }, [id]);
 
+  const handleMessageSeller = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (seller && seller.id !== "unknown" && seller.id !== user.id) {
+      const chatId = await createChat(user.id, seller.id);
+      navigate(`/chat/${chatId}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -162,6 +178,8 @@ const ProductDetail = () => {
       </div>
     );
   }
+
+  const isOwnProduct = user && product.owner_id === user.id;
 
   return (
     <div className="min-h-screen bg-background">
@@ -269,8 +287,14 @@ const ProductDetail = () => {
               <Button size="lg" className="w-full" variant="premium">
                 Add to Cart - ${product.price}
               </Button>
-              <Button size="lg" variant="outline" className="w-full">
-                Message Seller
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full"
+                onClick={handleMessageSeller}
+                disabled={isOwnProduct}
+              >
+                {isOwnProduct ? "This is your listing" : "Message Seller"}
               </Button>
             </div>
 
