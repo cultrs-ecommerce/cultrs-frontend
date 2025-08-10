@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,8 @@ interface FilterSidebarProps {
 }
 
 const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [minPrice, setMinPrice] = useState("0");
+  const [maxPrice, setMaxPrice] = useState("2000");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -20,13 +21,32 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
   const conditions = ["Excellent", "Good", "Fair", "Like New"];
-  const categories = ["Kurta", "Kimono", "Dashiki", "Huipil", "Saree", "Hanbok", "Cheongsam"];
+  const categories = [
+    "Kurta",
+    "Kimono",
+    "Dashiki",
+    "Huipil",
+    "Saree",
+    "Hanbok",
+    "Cheongsam",
+  ];
+
+  useEffect(() => {
+    // onFilterChange();
+  }, [
+    minPrice,
+    maxPrice,
+    selectedSizes,
+    selectedConditions,
+    selectedCategories,
+    minRating,
+  ]);
 
   const handleSizeChange = (size: string, checked: boolean) => {
     if (checked) {
       setSelectedSizes([...selectedSizes, size]);
     } else {
-      setSelectedSizes(selectedSizes.filter(s => s !== size));
+      setSelectedSizes(selectedSizes.filter((s) => s !== size));
     }
   };
 
@@ -34,7 +54,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     if (checked) {
       setSelectedConditions([...selectedConditions, condition]);
     } else {
-      setSelectedConditions(selectedConditions.filter(c => c !== condition));
+      setSelectedConditions(selectedConditions.filter((c) => c !== condition));
     }
   };
 
@@ -42,12 +62,30 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     if (checked) {
       setSelectedCategories([...selectedCategories, category]);
     } else {
-      setSelectedCategories(selectedCategories.filter(c => c !== category));
+      setSelectedCategories(selectedCategories.filter((c) => c !== category));
+    }
+  };
+
+  const handlePriceChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    type: "min" | "max"
+  ) => {
+    const value = e.target.value;
+    // Allow empty string for user input flexibility, but treat as 0 for logic
+    const numericValue = value === "" ? 0 : parseInt(value, 10);
+
+    if (numericValue < 0) return; // Prevent negative values
+
+    if (type === "min") {
+      setMinPrice(value);
+    } else {
+      setMaxPrice(value);
     }
   };
 
   const clearFilters = () => {
-    setPriceRange([0, 500]);
+    setMinPrice("0");
+    setMaxPrice("2000");
     setSelectedSizes([]);
     setSelectedConditions([]);
     setSelectedCategories([]);
@@ -70,16 +108,41 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
         {/* Price Range */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Price Range</Label>
-          <Slider
-            value={priceRange}
-            onValueChange={setPriceRange}
-            max={500}
-            step={10}
-            className="w-full"
-          />
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>${priceRange[0]}</span>
-            <span>${priceRange[1]}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex-1 space-y-1">
+              <Label
+                htmlFor="min-price"
+                className="text-xs text-muted-foreground"
+              >
+                Min
+              </Label>
+              <Input
+                id="min-price"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={minPrice}
+                onChange={(e) => handlePriceChange(e, "min")}
+                className="w-full"
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label
+                htmlFor="max-price"
+                className="text-xs text-muted-foreground"
+              >
+                Max
+              </Label>
+              <Input
+                id="max-price"
+                type="number"
+                min="0"
+                placeholder="500"
+                value={maxPrice}
+                onChange={(e) => handlePriceChange(e, "max")}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
 
@@ -94,9 +157,13 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
                 <Checkbox
                   id={`size-${size}`}
                   checked={selectedSizes.includes(size)}
-                  onCheckedChange={(checked) => handleSizeChange(size, checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    handleSizeChange(size, checked as boolean)
+                  }
                 />
-                <Label htmlFor={`size-${size}`} className="text-sm">{size}</Label>
+                <Label htmlFor={`size-${size}`} className="text-sm">
+                  {size}
+                </Label>
               </div>
             ))}
           </div>
@@ -113,9 +180,13 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
                 <Checkbox
                   id={`condition-${condition}`}
                   checked={selectedConditions.includes(condition)}
-                  onCheckedChange={(checked) => handleConditionChange(condition, checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    handleConditionChange(condition, checked as boolean)
+                  }
                 />
-                <Label htmlFor={`condition-${condition}`} className="text-sm">{condition}</Label>
+                <Label htmlFor={`condition-${condition}`} className="text-sm">
+                  {condition}
+                </Label>
               </div>
             ))}
           </div>
@@ -124,7 +195,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
         <Separator />
 
         {/* Category */}
-        <div className="space-y-3">
+        {/* <div className="space-y-3">
           <Label className="text-sm font-medium">Category</Label>
           <div className="space-y-2">
             {categories.map((category) => (
@@ -138,9 +209,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
               </div>
             ))}
           </div>
-        </div>
-
-        <Separator />
+        </div> */}
 
         {/* Seller Rating */}
         <div className="space-y-3">
@@ -157,10 +226,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
           </div>
         </div>
 
-        {/* Apply Filters */}
-        <Button className="w-full" variant="premium">
-          Apply Filters
-        </Button>
+        <Separator />
       </div>
     </Card>
   );
