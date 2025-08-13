@@ -375,7 +375,7 @@ export default function CreateListing() {
                       </button>
                     </div>
                   ))}
-                  {images.length < 5 && (
+                  {images.length <= 5 && (
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-primary transition-colors">
                       <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                       <span className="text-sm text-muted-foreground">
