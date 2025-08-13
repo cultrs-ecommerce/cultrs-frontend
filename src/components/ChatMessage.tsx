@@ -45,7 +45,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         }`}
       >
         {renderContent()}
-        <div className="text-right text-xs text-gray-400 mt-1">
+        <div style={{fontSize: "0.7rem"}} className="text-right text-gray-200 mt-1">
           {new Date(message.timestamp).toLocaleTimeString()}
         </div>
       </div>

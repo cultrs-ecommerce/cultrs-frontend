@@ -23,7 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import Header from "@/components/Header";
 import {
   User,
   MapPin,
@@ -139,7 +138,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Loading...</h1>
           <p className="text-muted-foreground">
@@ -157,7 +156,7 @@ const Profile = () => {
   // If currentUser exists but user data is still loading from Firestore
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Loading Profile...</h1>
           <p className="text-muted-foreground">
@@ -169,303 +168,298 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="m-auto">
+      {/* Profile Header */}
+      <div className="mb-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-start space-x-4">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={user.profilePictureUrl} />
+                <AvatarFallback>
+                  <User className="h-12 w-12" />
+                </AvatarFallback>
+              </Avatar>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Profile Header */}
-        <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <div className="flex items-start space-x-4">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user.profilePictureUrl} />
-                  <AvatarFallback>
-                    <User className="h-12 w-12" />
-                  </AvatarFallback>
-                </Avatar>
+              <div className="flex-1">
+                <CardTitle className="text-2xl mb-2">
+                  {user.name || "User"}
+                </CardTitle>
+                <CardDescription className="text-base mb-4">
+                  {user.email || currentUser.email}
+                </CardDescription>
 
-                <div className="flex-1">
-                  <CardTitle className="text-2xl mb-2">
-                    {user.name || "User"}
-                  </CardTitle>
-                  <CardDescription className="text-base mb-4">
-                    {user.email || currentUser.email}
-                  </CardDescription>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <Star className="h-4 w-4 text-yellow-500" />
+                    <span className="font-medium">
+                      {(user.rating || 0).toFixed(1)}
+                    </span>
+                    <span className="text-muted-foreground">
+                      ({user.reviewsCount || 0} reviews)
+                    </span>
+                  </div>
 
-                  <div className="flex items-center space-x-6">
-                    <div className="flex items-center space-x-2">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span className="font-medium">
-                        {(user.rating || 0).toFixed(1)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        ({user.reviewsCount || 0} reviews)
-                      </span>
-                    </div>
-
-                    {user.location && (
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>{user.location}</span>
-                      </div>
-                    )}
-
+                  {user.location && (
                     <div className="flex items-center space-x-1">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                      <span>{user.itemsSold} items sold</span>
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>{user.location}</span>
                     </div>
+                  )}
+
+                  <div className="flex items-center space-x-1">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <span>{user.itemsSold} items sold</span>
                   </div>
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditModalOpen(true)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
               </div>
-            </CardHeader>
-          </Card>
-        </div>
 
-        {/* Dashboard Tabs */}
-        <Tabs defaultValue="listings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="listings">My Listings</TabsTrigger>
-            <TabsTrigger value="comments">Recent Comments</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          {/* My Listings Tab */}
-          <TabsContent value="listings" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">
-                Your Products ({userProducts.length})
-              </h2>
-              <Button onClick={() => navigate("/sell")}>Add New Product</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditModalOpen(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
             </div>
+          </CardHeader>
+        </Card>
+      </div>
 
-            {loadingProducts ? (
-              <div className="text-center py-8">
-                <p>Loading your products...</p>
-              </div>
-            ) : userProducts.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">
-                    No products listed yet
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start selling by creating your first product listing.
-                  </p>
-                  <Button onClick={() => navigate("/sell")}>
-                    Create Your First Listing
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {userProducts.map((product) => (
-                  <Card key={product.id} className="overflow-hidden">
-                    <div className="aspect-square relative overflow-hidden">
-                      <img
-                        src={product.imageUrls[0] || "/placeholder.svg"}
-                        alt={product.title}
-                        className="object-cover w-full h-full"
-                      />
-                      <Badge
-                        className={`absolute top-2 right-2 ${
-                          product.status === "active"
-                            ? "bg-green-500"
-                            : product.status === "sold"
-                            ? "bg-gray-500"
-                            : product.status === "paused"
-                            ? "bg-yellow-500"
-                            : "bg-blue-500"
-                        }`}
-                      >
-                        {product.status}
-                      </Badge>
+      {/* Dashboard Tabs */}
+      <Tabs defaultValue="listings" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="listings">My Listings</TabsTrigger>
+          <TabsTrigger value="comments">Recent Comments</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+
+        {/* My Listings Tab */}
+        <TabsContent value="listings" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">
+              Your Products ({userProducts.length})
+            </h2>
+            <Button onClick={() => navigate("/sell")}>Add New Product</Button>
+          </div>
+
+          {loadingProducts ? (
+            <div className="text-center py-8">
+              <p>Loading your products...</p>
+            </div>
+          ) : userProducts.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  No products listed yet
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Start selling by creating your first product listing.
+                </p>
+                <Button onClick={() => navigate("/sell")}>
+                  Create Your First Listing
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {userProducts.map((product) => (
+                <Card key={product.id} className="overflow-hidden">
+                  <div className="aspect-square relative overflow-hidden">
+                    <img
+                      src={product.imageUrls[0] || "/placeholder.svg"}
+                      alt={product.title}
+                      className="object-cover w-full h-full"
+                    />
+                    <Badge
+                      className={`absolute top-2 right-2 ${
+                        product.status === "active"
+                          ? "bg-green-500"
+                          : product.status === "sold"
+                          ? "bg-gray-500"
+                          : product.status === "paused"
+                          ? "bg-yellow-500"
+                          : "bg-blue-500"
+                      }`}
+                    >
+                      {product.status}
+                    </Badge>
+                  </div>
+
+                  <CardContent className="p-4">
+                    <h3 className="font-medium mb-2 line-clamp-2">
+                      {product.title}
+                    </h3>
+                    <p className="text-xl font-bold text-primary mb-2">
+                      ${product.price}
+                    </p>
+
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-1">
+                          <Eye className="h-3 w-3" />
+                          <span>{product.viewsCount}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Heart className="h-3 w-3" />
+                          <span>{product.likesCount}</span>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">{product.condition}</Badge>
                     </div>
 
-                    <CardContent className="p-4">
-                      <h3 className="font-medium mb-2 line-clamp-2">
-                        {product.title}
-                      </h3>
-                      <p className="text-xl font-bold text-primary mb-2">
-                        ₹{product.price}
-                      </p>
-
-                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex items-center space-x-1">
-                            <Eye className="h-3 w-3" />
-                            <span>{product.viewsCount}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Heart className="h-3 w-3" />
-                            <span>{product.likesCount}</span>
-                          </div>
-                        </div>
-                        <Badge variant="secondary">{product.condition}</Badge>
-                      </div>
-
-                      <div className="flex space-x-2">
-                        {product.status === "active" ? (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() =>
-                              product.id && handleRemoveProduct(product.id)
-                            }
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Remove
-                          </Button>
-                        ) : product.status === "paused" ? (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() =>
-                              product.id && handleReactivateProduct(product.id)
-                            }
-                          >
-                            Reactivate
-                          </Button>
-                        ) : null}
-
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Recent Comments Tab */}
-          <TabsContent value="comments" className="space-y-4">
-            <h2 className="text-xl font-semibold">
-              Recent Comments on Your Items
-            </h2>
-
-            {recentComments.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No comments yet</h3>
-                  <p className="text-muted-foreground">
-                    Comments from buyers will appear here.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {recentComments.map((comment) => (
-                  <Card key={comment.id}>
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium">{comment.productTitle}</h4>
-                        <span className="text-sm text-muted-foreground">
-                          {comment.createdAt.toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-muted-foreground">{comment.text}</p>
-                      <Separator className="my-3" />
-                      <Button variant="outline" size="sm">
-                        <MessageCircle className="h-3 w-3 mr-1" />
-                        Reply
+                    <div className="flex space-x-2">
+                    <Button variant="outline" size="sm" className="flex-1">
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
                       </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-4">
-            <h2 className="text-xl font-semibold">Your Performance</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Listings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {userProducts.length}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Active Listings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {userProducts.filter((p) => p.status === "active").length}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Views
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {userProducts.reduce((sum, p) => sum + p.viewsCount, 0)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Likes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {userProducts.reduce((sum, p) => sum + p.likesCount, 0)}
-                  </div>
-                </CardContent>
-              </Card>
+                      {product.status === "active" ? (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() =>
+                            product.id && handleRemoveProduct(product.id)
+                          }
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Remove
+                        </Button>
+                      ) : product.status === "paused" ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() =>
+                            product.id && handleReactivateProduct(product.id)
+                          }
+                        >
+                          Reactivate
+                        </Button>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          )}
+        </TabsContent>
 
+        {/* Recent Comments Tab */}
+        <TabsContent value="comments" className="space-y-4">
+          <h2 className="text-xl font-semibold">
+            Recent Comments on Your Items
+          </h2>
+
+          {recentComments.length === 0 ? (
             <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Your account activity over the past 30 days
-                </CardDescription>
+              <CardContent className="text-center py-8">
+                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No comments yet</h3>
+                <p className="text-muted-foreground">
+                  Comments from buyers will appear here.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {recentComments.map((comment) => (
+                <Card key={comment.id}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{comment.productTitle}</h4>
+                      <span className="text-sm text-muted-foreground">
+                        {comment.createdAt.toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground">{comment.text}</p>
+                    <Separator className="my-3" />
+                    <Button variant="outline" size="sm">
+                      <MessageCircle className="h-3 w-3 mr-1" />
+                      Reply
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4">
+          <h2 className="text-xl font-semibold">Your Performance</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Listings
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  Analytics dashboard coming soon...
+                <div className="text-2xl font-bold">
+                  {userProducts.length}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Active Listings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {userProducts.filter((p) => p.status === "active").length}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Views
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {userProducts.reduce((sum, p) => sum + p.viewsCount, 0)}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Likes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {userProducts.reduce((sum, p) => sum + p.likesCount, 0)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                Your account activity over the past 30 days
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                Analytics dashboard coming soon...
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}

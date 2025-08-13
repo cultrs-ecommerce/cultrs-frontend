@@ -1,25 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
 import { ref, onValue, off } from "firebase/database";
-import { database, auth } from "../firebaseConfig";
+import { database } from "../firebaseConfig";
 import { sendMessage, markMessagesAsRead } from "../controllers/chatController";
 import { Message, Chat } from "../types/Chat";
 import ChatMessage from "../components/ChatMessage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Paperclip } from "lucide-react";
+import { Paperclip, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { formatDateSeparator } from "@/lib/date-utils";
 
-const ChatPage: React.FC = () => {
-  const { chatId } = useParams<{ chatId: string }>();
+interface ChatViewProps {
+  chatId: string;
+  onBack?: () => void;
+}
+
+const ChatView: React.FC<ChatViewProps> = ({ chatId, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatMetadata, setChatMetadata] = useState<Chat | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!chatId || !user) return;
+
+    setMessages([]);
+    setChatMetadata(null);
 
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const metadataRef = ref(database, `chats/${chatId}/metadata`);
@@ -36,7 +45,7 @@ const ChatPage: React.FC = () => {
     const metadataListener = onValue(metadataRef, (snapshot) => {
       const metadata = snapshot.val();
       setChatMetadata(metadata);
-      if (metadata) {
+      if (metadata && user) {
         markMessagesAsRead(chatId, user.id);
       }
     });
@@ -97,17 +106,39 @@ const ChatPage: React.FC = () => {
     return chatMetadata.participantNames[otherUserIndex] || "Unknown User";
   };
 
+  const renderMessagesWithDateSeparators = () => {
+    const messageElements: JSX.Element[] = [];
+    let lastDate: string | null = null;
+
+    messages.forEach((message, index) => {
+      const messageDate = new Date(message.timestamp).toDateString();
+      if (messageDate !== lastDate) {
+        messageElements.push(
+          <div key={`sep-${message.id}`} className="text-center text-sm text-gray-500 my-2">
+            {formatDateSeparator(message.timestamp)}
+          </div>
+        );
+        lastDate = messageDate;
+      }
+      messageElements.push(<ChatMessage key={message.id} message={message} />);
+    });
+    return messageElements;
+  }
+
   return (
-    <div className="flex flex-col h-screen">
-      <header className="bg-gray-100 p-4 border-b">
+    <div className="flex flex-col h-full">
+      <header className="bg-white p-4 border-b flex items-center">
+        {isMobile && onBack && (
+          <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
+        )}
         <h1 className="text-xl font-semibold">
           Chat with {getOtherParticipantName()}
         </h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
-        ))}
+        {renderMessagesWithDateSeparators()}
         <div ref={messagesEndRef} />
       </main>
       <footer className="p-4 border-t bg-gray-50">
@@ -117,9 +148,8 @@ const ChatPage: React.FC = () => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
-            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
           />
-          <Button onClick={handleSendMessage}>Send</Button>
           <Button asChild variant="outline" size="icon">
             <label htmlFor="file-upload">
               <Paperclip className="h-4 w-4" />
@@ -131,10 +161,12 @@ const ChatPage: React.FC = () => {
               />
             </label>
           </Button>
+          <Button onClick={handleSendMessage}>Send</Button>
+
         </div>
       </footer>
     </div>
   );
 };
 
-export default ChatPage;
+export default ChatView;

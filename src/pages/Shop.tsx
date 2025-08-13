@@ -16,7 +16,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import Header from "@/components/Header";
 import FilterSidebar from "@/components/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
 import { db } from "@/firebaseConfig";
@@ -77,55 +76,47 @@ const Shop = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="flex gap-6">
+      {/* Desktop Filter Sidebar */}
+      <div className="hidden lg:block w-64 flex-shrink-0">
+        <FilterSidebar />
+      </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* ... (Breadcrumb, Search, and Filter Header) */}
+      {/* Products Grid */}
+      <div className="flex-1">
+        {/* ... (Results Count) */}
 
-        <div className="flex gap-6">
-          {/* Desktop Filter Sidebar */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <FilterSidebar />
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6"
+                : "space-y-4"
+            }
+          >
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                title={product.title}
+                price={product.price}
+                image={product.imageUrls[0]}
+                seller={{
+                  name: product.seller.name,
+                  rating: product.seller.rating,
+                  avatar: product.seller.profilePictureUrl,
+                }}
+                condition={product.condition}
+                size={product.sizes[0]}
+                category={product.category}
+              />
+            ))}
           </div>
+        )}
 
-          {/* Products Grid */}
-          <div className="flex-1">
-            {/* ... (Results Count) */}
-
-            {loading ? (
-              <p>Loading...</p>
-            ) : (
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6"
-                    : "space-y-4"
-                }
-              >
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    title={product.title}
-                    price={product.price}
-                    image={product.imageUrls[0]}
-                    seller={{
-                      name: product.seller.name,
-                      rating: product.seller.rating,
-                      avatar: product.seller.profilePictureUrl,
-                    }}
-                    condition={product.condition}
-                    size={product.sizes[0]}
-                    category={product.category}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* ... (Load More Button) ... */}
-          </div>
-        </div>
+        {/* ... (Load More Button) ... */}
       </div>
     </div>
   );

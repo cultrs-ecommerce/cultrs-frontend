@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { ref, onValue, off } from "firebase/database";
-import { database, auth } from "../firebaseConfig";
+import { database } from "../firebaseConfig";
 import { Chat } from "../types/Chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,12 @@ interface ChatListItem extends Chat {
   id: string;
 }
 
-const ChatList: React.FC = () => {
+interface ChatListProps {
+  onSelectChat: (chatId: string) => void;
+  selectedChatId?: string | null;
+}
+
+const ChatList: React.FC<ChatListProps> = ({ onSelectChat, selectedChatId }) => {
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const { user } = useAuth();
 
@@ -28,7 +32,6 @@ const ChatList: React.FC = () => {
         return;
       }
 
-      // Clean up old listeners before creating new ones
       chatListeners.forEach(({ ref, listener }) => off(ref, "value", listener));
       chatListeners = [];
 
@@ -63,7 +66,7 @@ const ChatList: React.FC = () => {
 
           processedCount++;
           if (processedCount === chatIds.length) {
-            setChats([...newChats]);
+            setChats([...newChats.sort((a, b) => b.lastMessageTime - a.lastMessageTime)]);
           }
         });
         chatListeners.push({ ref: chatRef, listener: chatListener });
@@ -77,12 +80,12 @@ const ChatList: React.FC = () => {
   }, [user]);
 
   const getOtherParticipantInfo = (chat: Chat) => {
-    if (!user) return { id: null, name: null };
+    if (!user) return { id: null, name: null, avatar: null };
     const otherUserId = chat.participants.find((p) => p !== user.id);
-    const otherUserName =
-      chat.participantNames[
-        chat.participants.findIndex((p) => p === otherUserId)
-      ];
+    const otherUserIndex = chat.participants.findIndex((p) => p === otherUserId);
+    const otherUserName = chat.participantNames[otherUserIndex];
+    // const otherUserAvatar = chat.participantAvatars[otherUserIndex];
+
     return { id: otherUserId, name: otherUserName };
   };
 
@@ -93,33 +96,38 @@ const ChatList: React.FC = () => {
       </CardHeader>
       <CardContent>
         {chats.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {chats.map((chat) => {
               const otherParticipant = getOtherParticipantInfo(chat);
+              const isSelected = chat.id === selectedChatId;
               return (
-                <Link to={`/chat/${chat.id}`} key={chat.id}>
-                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src="" alt="User" />
-                        <AvatarFallback>
-                          {otherParticipant.name?.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">{otherParticipant.name}</p>
-                        <p className="text-sm text-gray-500 truncate">
-                          {chat.lastMessage}
-                        </p>
-                      </div>
+                <div
+                  key={chat.id}
+                  onClick={() => onSelectChat(chat.id)}
+                  className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                    isSelected ? 'bg-blue-100' : 'hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar>
+                      <AvatarImage src={otherParticipant.avatar} alt="User" />
+                      <AvatarFallback>
+                        {otherParticipant.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{otherParticipant.name}</p>
+                      <p className="text-sm text-gray-500 truncate">
+                        {chat.lastMessage}
+                      </p>
                     </div>
-                    {chat.lastMessageTime && (
-                      <div className="text-xs text-gray-400">
-                        {new Date(chat.lastMessageTime).toLocaleTimeString()}
-                      </div>
-                    )}
                   </div>
-                </Link>
+                  {chat.lastMessageTime && (
+                    <div className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                      {new Date(chat.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
