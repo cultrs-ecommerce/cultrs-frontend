@@ -126,9 +126,13 @@ const Shop = () => {
       );
     }
     if (pendingFilters.selectedMaterials.length > 0) {
-      tempFilteredProducts = tempFilteredProducts.filter(p =>
-        p.material && pendingFilters.selectedMaterials.includes(p.material)
-      );
+        tempFilteredProducts = tempFilteredProducts.filter(p => {
+            if (!p.material) return false;
+            const productMaterial = p.material.toLowerCase();
+            return pendingFilters.selectedMaterials.some(selectedMaterial =>
+                productMaterial.includes(selectedMaterial.toLowerCase())
+            );
+        });
     }
 
     setFilteredProducts(tempFilteredProducts);
