@@ -200,10 +200,10 @@ const Profile = () => {
                     </span>
                   </div>
 
-                  {user.location && (
+                  {user.zipCode && (
                     <div className="flex items-center space-x-1">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{user.location}</span>
+                      <span>{user.zipCode}</span>
                     </div>
                   )}
 

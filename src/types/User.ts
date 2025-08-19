@@ -9,6 +9,6 @@ export interface User {
   rating: number;
   reviewsCount: number;
   itemsSold: number;
-  location?: string;
+  zipCode?: number;
   createdAt: Timestamp;
 }

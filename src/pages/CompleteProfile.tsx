@@ -26,7 +26,7 @@ const toBase64 = (file: File): Promise<string> =>
 
 const CompleteProfile = () => {
   const { currentUser } = useAuth();
-  const [location, setLocation] = useState("");
+  const [zipCode, setZipCode] = useState("");
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -38,6 +38,11 @@ const CompleteProfile = () => {
       return;
     }
 
+    if (!/^\d{5}$/.test(zipCode)) {
+      toast.error("Please enter a valid 5-digit zip code.");
+      return;
+    }
+
     setLoading(true);
     try {
       let profilePictureUrl = "/placeholder.svg"; // Default placeholder
@@ -46,7 +51,7 @@ const CompleteProfile = () => {
       }
 
       await updateUserProfile(currentUser.uid, {
-        location,
+        zipCode: Number(zipCode),
         profilePictureUrl,
       });
 
@@ -74,15 +79,16 @@ const CompleteProfile = () => {
             <ImageUpload onFileChange={setProfilePicture} />
 
             <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="zipCode">Zip Code</Label>
               <Input
-                id="location"
-                name="location"
+                id="zipCode"
+                name="zipCode"
                 type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g., New York, USA"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                placeholder="e.g., 90210"
                 className="w-full"
+                maxLength={5}
               />
             </div>
 
