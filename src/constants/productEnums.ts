@@ -9,9 +9,8 @@ export const categories = [
 ] as const;
 
 export const conditions = [
-  "New with tags",
-  "New without tags", 
-  "Like new",
+  "New with tags", 
+  "Excellent",
   "Good",
   "Fair"
 ] as const;

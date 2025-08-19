@@ -348,7 +348,7 @@ const Profile = () => {
         </TabsContent>
 
         {/* Recent Comments Tab */}
-        <TabsContent value="comments" className="space-y-4">
+        {/* <TabsContent value="comments" className="space-y-4">
           <h2 className="text-xl font-semibold">
             Recent Comments on Your Items
           </h2>
@@ -385,7 +385,7 @@ const Profile = () => {
               ))}
             </div>
           )}
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">

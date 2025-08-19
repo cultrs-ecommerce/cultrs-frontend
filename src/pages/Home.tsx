@@ -82,10 +82,10 @@ const Home = () => {
   ];
 
   return (
-    <div className="bg-background w-screen">
+    <div className="bg-background">
       <Header />
       {/* Hero Section */}
-      <section className="hero-gradient py-20 px-4 -mx-4 -mt-8">
+      <section className="hero-gradient py-20 px-4 -mt-8">
         <div className="container mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
             Timeless Traditions,{" "}
@@ -109,7 +109,7 @@ const Home = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="bg-muted/30 px-4 py-16 -mx-4">
+      <section className="bg-muted/30 px-4 py-16">
         <div className="container mx-auto ">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="space-y-2">
@@ -158,7 +158,7 @@ const Home = () => {
       </section>
 
       {/* New Arrivals */}
-      <section className="py-16 -mx-4 bg-muted/30">
+      <section className="py-16 bg-muted/30">
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">

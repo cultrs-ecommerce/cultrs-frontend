@@ -17,10 +17,12 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [minRating, setMinRating] = useState(0);
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
-  const conditions = ["Excellent", "Good", "Fair", "Like New"];
+  const conditions = ["New with tags", "Excellent", "Good", "Fair"];
+  const materials = ["Cotton", "Silk", "Polyester", "Linen", "Wool", "Rayon"];
   const categories = [
     "Kurta",
     "Kimono",
@@ -39,6 +41,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     selectedSizes,
     selectedConditions,
     selectedCategories,
+    selectedMaterials,
     minRating,
   ]);
 
@@ -55,6 +58,14 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
       setSelectedConditions([...selectedConditions, condition]);
     } else {
       setSelectedConditions(selectedConditions.filter((c) => c !== condition));
+    }
+  };
+
+  const handleMaterialChange = (material: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMaterials([...selectedMaterials, material]);
+    } else {
+      setSelectedMaterials(selectedMaterials.filter((m) => m !== material));
     }
   };
 
@@ -89,6 +100,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     setSelectedSizes([]);
     setSelectedConditions([]);
     setSelectedCategories([]);
+    setSelectedMaterials([]);
     setMinRating(0);
   };
 
@@ -194,6 +206,29 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
         <Separator />
 
+        {/* Material */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Material</Label>
+          <div className="space-y-2">
+            {materials.map((material) => (
+              <div key={material} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`material-${material}`}
+                  checked={selectedMaterials.includes(material)}
+                  onCheckedChange={(checked) =>
+                    handleMaterialChange(material, checked as boolean)
+                  }
+                />
+                <Label htmlFor={`material-${material}`} className="text-sm">
+                  {material}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* <Separator /> */}
+
         {/* Category */}
         {/* <div className="space-y-3">
           <Label className="text-sm font-medium">Category</Label>
@@ -212,7 +247,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
         </div> */}
 
         {/* Seller Rating */}
-        <div className="space-y-3">
+        {/* <div className="space-y-3">
           <Label className="text-sm font-medium">Minimum Seller Rating</Label>
           <Slider
             value={[minRating]}
@@ -224,9 +259,9 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
           <div className="text-sm text-muted-foreground">
             {minRating} stars and above
           </div>
-        </div>
+        </div> */}
 
-        <Separator />
+        {/* <Separator /> */}
       </div>
     </Card>
   );
