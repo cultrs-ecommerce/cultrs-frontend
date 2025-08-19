@@ -46,31 +46,38 @@ const Header = () => {
     >
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-
-          {/* Logo & Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <div className="flex items-center">
+            {/* Logo */}
             <Link to="/" className="text-2xl font-bold text-primary">
-              <img src="/transparent_logo.svg" alt="Cultrs Logo" className="h-10" />
+              <img
+                src="/transparent_logo.svg"
+                alt="Cultrs Logo"
+                className="h-10"
+              />
             </Link>
-            <Link
-              to="/shop"
-              className="text-foreground hover:text-primary transition-smooth font-medium"
-            >
-              Shop
-            </Link>
-            <Link
-              to="/sell"
-              className="text-foreground hover:text-primary transition-smooth font-medium"
-            >
-              Sell
-            </Link>
-            <Link
-              to="/chat"
-              className="text-foreground hover:text-primary transition-smooth font-medium"
-            >
-              Chat
-            </Link>
-          </nav>
+
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center space-x-6 ml-6">
+              <Link
+                to="/shop"
+                className="text-foreground hover:text-primary transition-smooth font-medium"
+              >
+                Shop
+              </Link>
+              <Link
+                to="/sell"
+                className="text-foreground hover:text-primary transition-smooth font-medium"
+              >
+                Sell
+              </Link>
+              <Link
+                to="/chat"
+                className="text-foreground hover:text-primary transition-smooth font-medium"
+              >
+                Chat
+              </Link>
+            </nav>
+          </div>
 
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl mx-8 hidden lg:block">
