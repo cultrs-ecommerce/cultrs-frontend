@@ -2,13 +2,13 @@ import { ArrowRight, TrendingUp, Award, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
-import Header from "@/components/Header";
 
 // Import generated images
 import kurtaGreen from "@/assets/kurta-green.jpg";
 import kimonoBurgundy from "@/assets/kimono-burgundy.jpg";
 import dashikiOrange from "@/assets/dashiki-orange.jpg";
 import huipilWhite from "@/assets/huipil-white.jpg";
+import Header from "@/components/Header";
 
 const Home = () => {
   // Sample product data
@@ -82,11 +82,10 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <Header />
-      
       {/* Hero Section */}
-      <section className="hero-gradient py-20 px-4">
+      <section className="hero-gradient py-20 px-4 -mt-8">
         <div className="container mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
             Timeless Traditions,{" "}
@@ -110,8 +109,8 @@ const Home = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 px-4 bg-muted/30">
-        <div className="container mx-auto">
+      <section className="bg-muted/30 px-4 py-16">
+        <div className="container mx-auto ">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="space-y-2">
               <TrendingUp className="h-12 w-12 text-primary mx-auto" />
@@ -133,8 +132,8 @@ const Home = () => {
       </section>
 
       {/* Featured from Top Sellers */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto">
+      <section className="py-16">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Featured from Top Sellers
@@ -144,7 +143,7 @@ const Home = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} {...product} />
             ))}
@@ -159,7 +158,7 @@ const Home = () => {
       </section>
 
       {/* New Arrivals */}
-      <section className="py-16 px-4 bg-muted/30">
+      <section className="py-16 bg-muted/30">
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -170,7 +169,7 @@ const Home = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
             {newArrivals.map((product) => (
               <ProductCard key={product.id} {...product} />
             ))}
@@ -185,8 +184,8 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
+      <section className="py-20">
+        <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto space-y-6">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground">
               Have Traditional Clothes to Sell?
@@ -205,7 +204,7 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-foreground text-background py-12 px-4">
+      <footer className="bg-foreground text-background  px-4 py-12 -mb-8">
         <div className="container mx-auto text-center">
           <div className="mb-8">
             <h3 className="text-2xl font-bold mb-4">Heritage</h3>

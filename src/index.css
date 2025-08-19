@@ -40,7 +40,7 @@
     --input: 35 25% 90%;
     --ring: 28 20% 40%;  /* Brown focus color matching primary */
 
-    --radius: 0.75rem;
+    --radius: 0.3rem;
 
     /* Custom gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
@@ -123,6 +123,10 @@
 }
 
 @layer components {
+  .container {
+    @apply w-[95%] mx-auto;
+  }
+  
   /* Custom component styles using design system */
   .hero-gradient {
     background: var(--gradient-hero);

@@ -1,28 +1,12 @@
-import { useState, useEffect } from "react";
-import { Search, Grid, List, SlidersHorizontal } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import Header from "@/components/Header";
-import FilterSidebar from "@/components/FilterSidebar";
+import FilterSidebar, { Filters } from "@/components/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
 import { db } from "@/firebaseConfig";
 import { collection, getDocs, doc, getDoc, Timestamp } from "firebase/firestore";
 import { Product } from "@/types/Product";
 import { User } from "@/types/User";
+import { isEqual } from "lodash";
 
 interface ProductWithSeller extends Product {
   seller: User;
@@ -30,9 +14,12 @@ interface ProductWithSeller extends Product {
 
 const Shop = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [products, setProducts] = useState<ProductWithSeller[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductWithSeller[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductWithSeller[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showApplyButton, setShowApplyButton] = useState(false);
+  const [pendingFilters, setPendingFilters] = useState<Filters | null>(null);
+  const appliedFilters = useRef<Filters | null>(null);
 
   useEffect(() => {
     const fetchProductsAndSellers = async () => {
@@ -44,28 +31,23 @@ const Shop = () => {
           ...doc.data(),
         })) as Product[];
 
-        const productsWithSellers: ProductWithSeller[] = [];
-        for (const product of productsData) {
-          let seller: User;
-          if (product.owner_id) {
-            const userDocRef = doc(db, "users", product.owner_id);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-              seller = { id: userDocSnap.id, ...userDocSnap.data() } as User;
+        const productsWithSellers: ProductWithSeller[] = await Promise.all(
+          productsData.map(async (product) => {
+            let seller: User;
+            if (product.owner_id) {
+              const userDocRef = doc(db, "users", product.owner_id);
+              const userDocSnap = await getDoc(userDocRef);
+              seller = userDocSnap.exists()
+                ? ({ id: userDocSnap.id, ...userDocSnap.data() } as User)
+                : { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
             } else {
-              // Seller not found, use placeholder
               seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
             }
-          } else {
-            // No owner_id on product, use placeholder
-            seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
-          }
-          productsWithSellers.push({
-            ...product,
-            seller,
-          });
-        }
-        setProducts(productsWithSellers);
+            return { ...product, seller };
+          })
+        );
+        setAllProducts(productsWithSellers);
+        setFilteredProducts(productsWithSellers);
       } catch (error) {
         console.error("Error fetching data: ", error);
       } finally {
@@ -76,56 +58,91 @@ const Shop = () => {
     fetchProductsAndSellers();
   }, []);
 
+  const handleFiltersChange = useCallback((newFilters: Filters) => {
+    setPendingFilters(newFilters);
+    setShowApplyButton(!isEqual(newFilters, appliedFilters.current));
+  }, []);
+
+  const applyFilters = useCallback(() => {
+    if (!pendingFilters) return;
+
+    let tempFilteredProducts = [...allProducts];
+
+    const minPrice = parseFloat(pendingFilters.minPrice);
+    if (!isNaN(minPrice)) {
+      tempFilteredProducts = tempFilteredProducts.filter(p => p.price >= minPrice);
+    }
+    const maxPrice = parseFloat(pendingFilters.maxPrice);
+    if (!isNaN(maxPrice)) {
+      tempFilteredProducts = tempFilteredProducts.filter(p => p.price <= maxPrice);
+    }
+    if (pendingFilters.selectedSizes.length > 0) {
+      tempFilteredProducts = tempFilteredProducts.filter(p =>
+        p.sizes.some(size => pendingFilters.selectedSizes.includes(size))
+      );
+    }
+    if (pendingFilters.selectedConditions.length > 0) {
+      tempFilteredProducts = tempFilteredProducts.filter(p =>
+        pendingFilters.selectedConditions.includes(p.condition)
+      );
+    }
+    if (pendingFilters.selectedMaterials.length > 0) {
+      tempFilteredProducts = tempFilteredProducts.filter(p =>
+        p.material && pendingFilters.selectedMaterials.includes(p.material)
+      );
+    }
+
+    setFilteredProducts(tempFilteredProducts);
+    appliedFilters.current = pendingFilters;
+    setShowApplyButton(false);
+  }, [pendingFilters, allProducts]);
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="flex gap-6">
+      <div className="hidden lg:block w-64 flex-shrink-0">
+        <FilterSidebar onFiltersChange={handleFiltersChange} />
+      </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* ... (Breadcrumb, Search, and Filter Header) */}
-
-        <div className="flex gap-6">
-          {/* Desktop Filter Sidebar */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <FilterSidebar />
+      <div className="flex-1">
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6"
+                : "space-y-4"
+            }
+          >
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                title={product.title}
+                price={product.price}
+                image={product.imageUrls[0]}
+                seller={{
+                  name: product.seller.name,
+                  rating: product.seller.rating,
+                  avatar: product.seller.profilePictureUrl,
+                }}
+                condition={product.condition}
+                size={product.sizes[0]}
+                category={product.category}
+              />
+            ))}
           </div>
-
-          {/* Products Grid */}
-          <div className="flex-1">
-            {/* ... (Results Count) */}
-
-            {loading ? (
-              <p>Loading...</p>
-            ) : (
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                    : "space-y-4"
-                }
-              >
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    title={product.title}
-                    price={product.price}
-                    image={product.imageUrls[0]}
-                    seller={{
-                      name: product.seller.name,
-                      rating: product.seller.rating,
-                      avatar: product.seller.profilePictureUrl,
-                    }}
-                    condition={product.condition}
-                    size={product.sizes[0]}
-                    category={product.category}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* ... (Load More Button) ... */}
-          </div>
-        </div>
+        )}
+      </div>
+      
+      <div
+        className={`fixed bottom-4 left-1/2 -translate-x-1/2 transition-transform duration-300 ease-in-out ${
+          showApplyButton ? "translate-y-0" : "translate-y-[200%]"
+        }`}
+      >
+        <Button onClick={applyFilters} size="lg" variant="premium">
+          Apply Filters
+        </Button>
       </div>
     </div>
   );

@@ -1,4 +1,11 @@
-import { Search, ShoppingCart, User, Heart, LogOut, Settings } from "lucide-react";
+import {
+  Search,
+  ShoppingCart,
+  User,
+  Heart,
+  LogOut,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -23,50 +30,50 @@ const Header = () => {
       setIsAtTop(window.scrollY === 0);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  console.log("header: " + JSON.stringify
-    (currentUser));
+  console.log("header: " + JSON.stringify(currentUser));
 
   return (
-    <header className={`sticky top-0 z-50 border-b transition-smooth ${
-      isAtTop 
-        ? 'bg-white' 
-        : 'bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'
-    }`}>
+    <header
+      className={`sticky top-0 z-50 border-b transition-smooth ${
+        isAtTop
+          ? "bg-white"
+          : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      }`}
+    >
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="text-2xl font-bold text-primary">
-            Heritage
-          </Link>
 
-          {/* Navigation */}
+          {/* Logo & Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/shop" 
+            <Link to="/" className="text-2xl font-bold text-primary">
+              <img src="/transparent_logo.svg" alt="Cultrs Logo" className="h-10" />
+            </Link>
+            <Link
+              to="/shop"
               className="text-foreground hover:text-primary transition-smooth font-medium"
             >
               Shop
             </Link>
-            <Link 
-              to="/sell" 
+            <Link
+              to="/sell"
               className="text-foreground hover:text-primary transition-smooth font-medium"
             >
               Sell
             </Link>
-            <Link 
-              to="/about" 
+            <Link
+              to="/chat"
               className="text-foreground hover:text-primary transition-smooth font-medium"
             >
-              About
+              Chat
             </Link>
           </nav>
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-md mx-8 hidden lg:block">
+          <div className="flex-1 max-w-2xl mx-8 hidden lg:block">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -99,7 +106,9 @@ const Header = () => {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {user?.name || "User"}
+                      </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user?.email || currentUser.email}
                       </p>

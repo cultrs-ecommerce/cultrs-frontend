@@ -38,6 +38,7 @@ const EditProfileModal = ({
   const { user, currentUser } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [zipCode, setZipCode] = useState(user?.zipCode?.toString() || "");
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(
     null
   );
@@ -47,12 +48,18 @@ const EditProfileModal = ({
     if (user) {
       setName(user.name || "");
       setEmail(user.email || "");
+      setZipCode(user.zipCode?.toString() || "");
     }
   }, [user]);
 
   const handleSubmit = async () => {
     if (!currentUser || !user) {
       toast.error("You must be logged in to update your profile.");
+      return;
+    }
+
+    if (!/^\d{5}$/.test(zipCode)) {
+      toast.error("Please enter a valid 5-digit zip code.");
       return;
     }
 
@@ -67,10 +74,17 @@ const EditProfileModal = ({
       await updateUser(currentUser.uid, {
         name,
         email,
+        zipCode: Number(zipCode),
         profilePictureUrl,
       });
 
-      const updatedUser = { ...user, name, email, profilePictureUrl };
+      const updatedUser = {
+        ...user,
+        name,
+        email,
+        zipCode: Number(zipCode),
+        profilePictureUrl,
+      };
       onUpdate(updatedUser as User);
 
       toast.success("Profile updated successfully!");
@@ -112,6 +126,15 @@ const EditProfileModal = ({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="zipCode">Zip Code</Label>
+            <Input
+              id="zipCode"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              maxLength={5}
             />
           </div>
         </div>
