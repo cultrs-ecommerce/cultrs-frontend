@@ -50,7 +50,7 @@ const Header = () => {
           {/* Logo & Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-2xl font-bold text-primary">
-              Heritage
+              <img src="/transparent_logo.svg" alt="Cultrs Logo" className="h-10" />
             </Link>
             <Link
               to="/shop"

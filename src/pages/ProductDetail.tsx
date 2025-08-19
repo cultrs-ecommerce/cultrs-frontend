@@ -282,9 +282,9 @@ const ProductDetail = () => {
 
           {/* Add to Cart */}
           <div className="space-y-3">
-            <Button size="lg" className="w-full" variant="premium">
+            {/* <Button size="lg" className="w-full" variant="premium">
               Add to Cart - ${product.price}
-            </Button>
+            </Button> */}
             <Button
               size="lg"
               variant="outline"

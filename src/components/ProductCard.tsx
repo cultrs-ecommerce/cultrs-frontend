@@ -84,14 +84,14 @@ const ProductCard = ({
         {/* Price & Action */}
         <div className="flex items-center justify-between">
           <span className="text-xl font-bold text-primary">${price}</span>
-          <Button
+          {/* <Button
             variant="warm"
             size="sm"
             // Prevent link navigation when clicking button
             onClick={(e) => e.preventDefault()}
           >
             Add to Cart
-          </Button>
+          </Button> */}
         </div>
       </div>
     </Link>)
