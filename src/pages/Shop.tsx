@@ -23,6 +23,7 @@ const Shop = () => {
   const appliedFilters = useRef<Filters | null>(null);
   const location = useLocation();
   const { searchResults, searchQuery } = location.state || { searchResults: null, searchQuery: "" };
+  const [baseProducts, setBaseProducts] = useState<ProductWithSeller[]>([]);
 
   useEffect(() => {
     const fetchProductsAndSellers = async () => {
@@ -61,30 +62,40 @@ const Shop = () => {
   }, []);
 
   useEffect(() => {
-    if (searchResults) {
-      const fetchSellersForResults = async () => {
-        const resultsWithSellers: ProductWithSeller[] = await Promise.all(
-          searchResults.map(async (product: Product) => {
-            let seller: User;
-            if (product.owner_id) {
-              const userDocRef = doc(db, "users", product.owner_id);
-              const userDocSnap = await getDoc(userDocRef);
-              seller = userDocSnap.exists()
-                ? ({ id: userDocSnap.id, ...userDocSnap.data() } as User)
-                : { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
-            } else {
-              seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
-            }
-            return { ...product, seller };
-          })
-        );
-        setFilteredProducts(resultsWithSellers);
-      };
-      fetchSellersForResults();
-    } else {
-      setFilteredProducts(allProducts);
+    const processProducts = async () => {
+      let productsToProcess: Product[] = [];
+      if (searchResults) {
+        productsToProcess = searchResults;
+      } else {
+        productsToProcess = allProducts;
+      }
+
+      const productsWithSellers: ProductWithSeller[] = await Promise.all(
+        productsToProcess.map(async (product) => {
+          if ('seller' in product) {
+            return product as ProductWithSeller;
+          }
+          let seller: User;
+          if (product.owner_id) {
+            const userDocRef = doc(db, "users", product.owner_id);
+            const userDocSnap = await getDoc(userDocRef);
+            seller = userDocSnap.exists()
+              ? ({ id: userDocSnap.id, ...userDocSnap.data() } as User)
+              : { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
+          } else {
+            seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
+          }
+          return { ...product, seller };
+        })
+      );
+      setBaseProducts(productsWithSellers);
+      setFilteredProducts(productsWithSellers);
+    };
+
+    if (!loading) {
+      processProducts();
     }
-  }, [searchResults, allProducts]);
+  }, [searchResults, allProducts, loading]);
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {
     setPendingFilters(newFilters);
@@ -94,7 +105,7 @@ const Shop = () => {
   const applyFilters = useCallback(() => {
     if (!pendingFilters) return;
 
-    let tempFilteredProducts = searchResults ? [...searchResults] : [...allProducts];
+    let tempFilteredProducts = [...baseProducts];
 
     const minPrice = parseFloat(pendingFilters.minPrice);
     if (!isNaN(minPrice)) {
@@ -123,9 +134,7 @@ const Shop = () => {
     setFilteredProducts(tempFilteredProducts);
     appliedFilters.current = pendingFilters;
     setShowApplyButton(false);
-  }, [pendingFilters, allProducts, searchResults]);
-
-  const productsToDisplay = searchResults ? filteredProducts : allProducts;
+  }, [pendingFilters, baseProducts]);
 
   return (
     <div className="flex gap-6">
@@ -138,7 +147,7 @@ const Shop = () => {
           <p>Loading...</p>
         ) : (
           <>
-            {searchResults && productsToDisplay.length === 0 && (
+            {searchResults && filteredProducts.length === 0 && (
               <p>No results found for "{searchQuery}"</p>
             )}
             <div
@@ -148,7 +157,7 @@ const Shop = () => {
                   : "space-y-4"
               }
             >
-              {productsToDisplay.map((product) => (
+              {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   id={product.id}

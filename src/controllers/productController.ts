@@ -173,7 +173,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
                         const distance = levenshteinDistance(term, fieldTerm);
                         const similarity = 1 - distance / Math.max(term.length, fieldTerm.length);
                         // very low similarity since there may not be many products initially
-                        if (similarity > 0.4) {
+                        if (similarity > 0.5) {
                             score += similarity * field.weight;
                         }
                     });
