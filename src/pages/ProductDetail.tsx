@@ -205,22 +205,22 @@ const ProductDetail = () => {
                   onClick={() => setSelectedImage(index)}
                   className={`w-20 h-20 rounded-md overflow-hidden border-2 transition-smooth ${
                     selectedImage === index ? "border-primary" : "border-border"
-                  }`}
+                  } bg-white`}
                 >
                   <img
                     src={image}
                     alt={`View ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 </button>
               ))}
             </div>
 
-            <div className="flex-1 rounded-lg overflow-hidden bg-muted aspect-square">
+            <div className="flex-1 rounded-lg overflow-hidden bg-white aspect-square">
               <img
                 src={product.imageUrls[selectedImage]}
                 alt={product.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
           </div>

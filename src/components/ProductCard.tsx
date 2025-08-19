@@ -30,15 +30,15 @@ const ProductCard = ({
   featured = false,
 }: ProductCardProps) => {
   return (
-    <Link to={`/product/${id}`} className="product-card overflow-hidden group">
+    (<Link to={`/product/${id}`} className="product-card overflow-hidden group">
       <div
-        className={`relative ${featured ? "ring-2 ring-primary/20" : ""}`}
+        className={`relative ${featured ? "ring-2 ring-primary/20" : ""} bg-white`}
       >
         <img
           src={image}
           alt={title}
           loading="lazy"
-          className="w-full h-48 object-cover transition-smooth group-hover:scale-105"
+          className="w-full h-48 object-contain transition-smooth group-hover:scale-105"
         />
 
         {/* Favorite Button */}
@@ -94,7 +94,7 @@ const ProductCard = ({
           </Button>
         </div>
       </div>
-    </Link>
+    </Link>)
   );
 };
 

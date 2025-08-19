@@ -364,7 +364,7 @@ export default function CreateListing() {
                       <img
                         src={preview}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-md border"
+                        className="w-full h-32 object-contain rounded-md border bg-white"
                       />
                       <button
                         type="button"
