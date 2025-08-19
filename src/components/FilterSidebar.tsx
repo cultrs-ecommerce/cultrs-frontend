@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,74 +6,78 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+export interface Filters {
+  minPrice: string;
+  maxPrice: string;
+  selectedSizes: string[];
+  selectedConditions: string[];
+  selectedMaterials: string[];
+}
+
 interface FilterSidebarProps {
-  onFiltersChange: () => void;
+  onFiltersChange: (filters: Filters) => void;
 }
 
 const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
-  const [minPrice, setMinPrice] = useState("0");
-  const [maxPrice, setMaxPrice] = useState("2000");
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    minPrice: "0",
+    maxPrice: "2000",
+    selectedSizes: [],
+    selectedConditions: [],
+    selectedMaterials: [],
+  });
+  const isInitialMount = useRef(true);
 
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
-  const conditions = ["New with tags", "Excellent", "Good", "Fair"];
-  const materials = ["Cotton", "Silk", "Polyester", "Linen", "Wool", "Rayon"];
-
-  const handleSizeChange = (size: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSizes([...selectedSizes, size]);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
     } else {
-      setSelectedSizes(selectedSizes.filter((s) => s !== size));
+      onFiltersChange(filters);
     }
-    onFiltersChange();
-  };
-
-  const handleConditionChange = (condition: string, checked: boolean) => {
-    if (checked) {
-      setSelectedConditions([...selectedConditions, condition]);
-    } else {
-      setSelectedConditions(selectedConditions.filter((c) => c !== condition));
-    }
-    onFiltersChange();
-  };
-
-  const handleMaterialChange = (material: string, checked: boolean) => {
-    if (checked) {
-      setSelectedMaterials([...selectedMaterials, material]);
-    } else {
-      setSelectedMaterials(selectedMaterials.filter((m) => m !== material));
-    }
-    onFiltersChange();
-  };
+  }, [filters, onFiltersChange]);
 
   const handlePriceChange = (
     e: ChangeEvent<HTMLInputElement>,
     type: "min" | "max"
   ) => {
     const value = e.target.value;
-    if (type === "min") {
-      setMinPrice(value);
-    } else {
-      setMaxPrice(value);
-    }
-    onFiltersChange();
+    setFilters((prev) => ({
+      ...prev,
+      [type === "min" ? "minPrice" : "maxPrice"]: value,
+    }));
+  };
+
+  const handleCheckboxChange = (
+    category: "selectedSizes" | "selectedConditions" | "selectedMaterials",
+    value: string,
+    checked: boolean
+  ) => {
+    setFilters((prev) => {
+      const currentValues = prev[category];
+      const newValues = checked
+        ? [...currentValues, value]
+        : currentValues.filter((item) => item !== value);
+      return { ...prev, [category]: newValues };
+    });
   };
 
   const clearFilters = () => {
-    setMinPrice("0");
-    setMaxPrice("2000");
-    setSelectedSizes([]);
-    setSelectedConditions([]);
-    setSelectedMaterials([]);
-    onFiltersChange();
+    setFilters({
+      minPrice: "0",
+      maxPrice: "2000",
+      selectedSizes: [],
+      selectedConditions: [],
+      selectedMaterials: [],
+    });
   };
+
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
+  const conditions = ["New with tags", "Excellent", "Good", "Fair"];
+  const materials = ["Cotton", "Silk", "Polyester", "Linen", "Wool", "Rayon"];
 
   return (
     <Card className="p-6 sticky top-24">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Filters</h3>
           <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -83,40 +87,29 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* Price Range */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Price Range</Label>
           <div className="flex items-center gap-4">
             <div className="flex-1 space-y-1">
-              <Label
-                htmlFor="min-price"
-                className="text-xs text-muted-foreground"
-              >
-                Min
-              </Label>
+              <Label htmlFor="min-price" className="text-xs text-muted-foreground">Min</Label>
               <Input
                 id="min-price"
                 type="number"
                 min="0"
                 placeholder="0"
-                value={minPrice}
+                value={filters.minPrice}
                 onChange={(e) => handlePriceChange(e, "min")}
                 className="w-full"
               />
             </div>
             <div className="flex-1 space-y-1">
-              <Label
-                htmlFor="max-price"
-                className="text-xs text-muted-foreground"
-              >
-                Max
-              </Label>
+              <Label htmlFor="max-price" className="text-xs text-muted-foreground">Max</Label>
               <Input
                 id="max-price"
                 type="number"
                 min="0"
                 placeholder="500"
-                value={maxPrice}
+                value={filters.maxPrice}
                 onChange={(e) => handlePriceChange(e, "max")}
                 className="w-full"
               />
@@ -126,7 +119,6 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* Size */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Size</Label>
           <div className="grid grid-cols-2 gap-2">
@@ -134,14 +126,12 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
               <div key={size} className="flex items-center space-x-2">
                 <Checkbox
                   id={`size-${size}`}
-                  checked={selectedSizes.includes(size)}
+                  checked={filters.selectedSizes.includes(size)}
                   onCheckedChange={(checked) =>
-                    handleSizeChange(size, checked as boolean)
+                    handleCheckboxChange("selectedSizes", size, checked as boolean)
                   }
                 />
-                <Label htmlFor={`size-${size}`} className="text-sm">
-                  {size}
-                </Label>
+                <Label htmlFor={`size-${size}`} className="text-sm">{size}</Label>
               </div>
             ))}
           </div>
@@ -149,7 +139,6 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* Condition */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Condition</Label>
           <div className="space-y-2">
@@ -157,14 +146,12 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
               <div key={condition} className="flex items-center space-x-2">
                 <Checkbox
                   id={`condition-${condition}`}
-                  checked={selectedConditions.includes(condition)}
+                  checked={filters.selectedConditions.includes(condition)}
                   onCheckedChange={(checked) =>
-                    handleConditionChange(condition, checked as boolean)
+                    handleCheckboxChange("selectedConditions", condition, checked as boolean)
                   }
                 />
-                <Label htmlFor={`condition-${condition}`} className="text-sm">
-                  {condition}
-                </Label>
+                <Label htmlFor={`condition-${condition}`} className="text-sm">{condition}</Label>
               </div>
             ))}
           </div>
@@ -172,7 +159,6 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* Material */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Material</Label>
           <div className="space-y-2">
@@ -180,19 +166,19 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
               <div key={material} className="flex items-center space-x-2">
                 <Checkbox
                   id={`material-${material}`}
-                  checked={selectedMaterials.includes(material)}
+                  checked={filters.selectedMaterials.includes(material)}
                   onCheckedChange={(checked) =>
-                    handleMaterialChange(material, checked as boolean)
+                    handleCheckboxChange("selectedMaterials", material, checked as boolean)
                   }
                 />
-                <Label htmlFor={`material-${material}`} className="text-sm">
-                  {material}
-                </Label>
+                <Label htmlFor={`material-${material}`} className="text-sm">{material}</Label>
               </div>
             ))}
           </div>
         </div>
 
+        
+      
         
         {/* <Separator /> */}
 
@@ -232,6 +218,9 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
       </div>
     </Card>
+
+    
+
   );
 };
 
