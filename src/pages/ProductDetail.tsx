@@ -22,6 +22,7 @@ import { Product } from "@/types/Product";
 import { User as UserType } from "@/types/User";
 import { useAuth } from "@/hooks/useAuth";
 import { createChat } from "@/controllers/chatController";
+import { useAnalytics } from "@/hooks/useAnalytics"; // Import the useAnalytics hook
 
 // Sample data for similar products and reviews (can be replaced with dynamic data)
 import kimonoBurgundy from "@/assets/kimono-burgundy.jpg";
@@ -78,6 +79,7 @@ const ProductDetail = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { trackProductView } = useAnalytics(); // Use the analytics hook
 
   useEffect(() => {
     const fetchProductAndSeller = async () => {
@@ -94,6 +96,11 @@ const ProductDetail = () => {
             ...productDocSnap.data(),
           } as Product;
           setProduct(productData);
+          
+          // Track product view
+          if (user) {
+            trackProductView(user.id, productData.id);
+          }
 
           // Fetch Seller
           if (productData.owner_id) {
@@ -139,7 +146,7 @@ const ProductDetail = () => {
     };
 
     fetchProductAndSeller();
-  }, [id]);
+  }, [id, user, trackProductView]);
 
   const handleMessageSeller = async () => {
     if (!user) {
@@ -336,8 +343,8 @@ const ProductDetail = () => {
                 </span>
               </div>
               <p className="text-muted-foreground text-sm">
-                {seller.location
-                  ? `From ${seller.location}`
+                {seller.zipCode
+                  ? `From ${seller.zipCode}`
                   : "Location not specified"}
               </p>
             </div>

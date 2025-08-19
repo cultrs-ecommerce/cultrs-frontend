@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AnalyticsProvider } from "@/hooks/useAnalytics"; // Import AnalyticsProvider
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -41,30 +42,32 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route element={<MainLayout />}>
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/sell" element={<CreateListing />} />
-              <Route path="/profile" element={<Profile />} />
-            </Route>
+        <AnalyticsProvider> {/* Add AnalyticsProvider here */}
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route element={<MainLayout />}>
+                <Route path="/shop" element={<Shop />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/sell" element={<CreateListing />} />
+                <Route path="/profile" element={<Profile />} />
+              </Route>
 
-            <Route element={<ChatLayout />}>
-              <Route path="/chat" element={<ChatPage />} />
-            </Route>
+              <Route element={<ChatLayout />}>
+                <Route path="/chat" element={<ChatPage />} />
+              </Route>
 
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/complete-profile" element={<CompleteProfile />} />
-            <Route path="/logout" element={<Logout />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
+              <Route path="/logout" element={<Logout />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AnalyticsProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
