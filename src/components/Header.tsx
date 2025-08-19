@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -20,10 +20,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { searchProducts } from "@/controllers/productController";
 
 const Header = () => {
   const [isAtTop, setIsAtTop] = useState(true);
   const { currentUser, user } = useAuth();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,7 +37,24 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  console.log("header: " + JSON.stringify(currentUser));
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      navigate('/shop', { state: { searchResults: null } });
+      return;
+    }
+    try {
+      const results = await searchProducts(searchQuery);
+      navigate('/shop', { state: { searchResults: results, searchQuery: searchQuery } });
+    } catch (error) {
+      console.error("Error searching products:", error);
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   return (
     <header
@@ -82,10 +102,15 @@ const Header = () => {
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl mx-8 hidden lg:block">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search for traditional clothes..."
                 className="pl-10 bg-muted/50 border-border focus:bg-background"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 cursor-pointer"
+                onClick={handleSearch}
               />
             </div>
           </div>
@@ -155,10 +180,15 @@ const Header = () => {
         {/* Mobile Search */}
         <div className="mt-4 lg:hidden">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search for traditional clothes..."
               className="pl-10 bg-muted/50 border-border focus:bg-background"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 cursor-pointer"
+              onClick={handleSearch}
             />
           </div>
         </div>
