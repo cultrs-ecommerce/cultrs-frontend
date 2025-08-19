@@ -1,14 +1,13 @@
-import { useState, ChangeEvent, useEffect } from "react";
+import { useState, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 interface FilterSidebarProps {
-  onFiltersChange?: (filters: any) => void;
+  onFiltersChange: () => void;
 }
 
 const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
@@ -16,34 +15,11 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
   const [maxPrice, setMaxPrice] = useState("2000");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
-  const [minRating, setMinRating] = useState(0);
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
   const conditions = ["New with tags", "Excellent", "Good", "Fair"];
   const materials = ["Cotton", "Silk", "Polyester", "Linen", "Wool", "Rayon"];
-  const categories = [
-    "Kurta",
-    "Kimono",
-    "Dashiki",
-    "Huipil",
-    "Saree",
-    "Hanbok",
-    "Cheongsam",
-  ];
-
-  useEffect(() => {
-    // onFilterChange();
-  }, [
-    minPrice,
-    maxPrice,
-    selectedSizes,
-    selectedConditions,
-    selectedCategories,
-    selectedMaterials,
-    minRating,
-  ]);
 
   const handleSizeChange = (size: string, checked: boolean) => {
     if (checked) {
@@ -51,6 +27,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     } else {
       setSelectedSizes(selectedSizes.filter((s) => s !== size));
     }
+    onFiltersChange();
   };
 
   const handleConditionChange = (condition: string, checked: boolean) => {
@@ -59,6 +36,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     } else {
       setSelectedConditions(selectedConditions.filter((c) => c !== condition));
     }
+    onFiltersChange();
   };
 
   const handleMaterialChange = (material: string, checked: boolean) => {
@@ -67,14 +45,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     } else {
       setSelectedMaterials(selectedMaterials.filter((m) => m !== material));
     }
-  };
-
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategories([...selectedCategories, category]);
-    } else {
-      setSelectedCategories(selectedCategories.filter((c) => c !== category));
-    }
+    onFiltersChange();
   };
 
   const handlePriceChange = (
@@ -82,16 +53,12 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     type: "min" | "max"
   ) => {
     const value = e.target.value;
-    // Allow empty string for user input flexibility, but treat as 0 for logic
-    const numericValue = value === "" ? 0 : parseInt(value, 10);
-
-    if (numericValue < 0) return; // Prevent negative values
-
     if (type === "min") {
       setMinPrice(value);
     } else {
       setMaxPrice(value);
     }
+    onFiltersChange();
   };
 
   const clearFilters = () => {
@@ -99,9 +66,8 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     setMaxPrice("2000");
     setSelectedSizes([]);
     setSelectedConditions([]);
-    setSelectedCategories([]);
     setSelectedMaterials([]);
-    setMinRating(0);
+    onFiltersChange();
   };
 
   return (
@@ -227,6 +193,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
           </div>
         </div>
 
+        
         {/* <Separator /> */}
 
         {/* Category */}
@@ -262,6 +229,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
         </div> */}
 
         {/* <Separator /> */}
+
       </div>
     </Card>
   );

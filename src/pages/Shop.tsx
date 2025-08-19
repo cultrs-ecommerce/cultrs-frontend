@@ -32,6 +32,7 @@ const Shop = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<ProductWithSeller[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showApplyButton, setShowApplyButton] = useState(false);
 
   useEffect(() => {
     const fetchProductsAndSellers = async () => {
@@ -75,11 +76,21 @@ const Shop = () => {
     fetchProductsAndSellers();
   }, []);
 
+  const handleFiltersChange = () => {
+    setShowApplyButton(true);
+  };
+
+  const applyFilters = () => {
+    // Implement filter logic here
+    console.log("Applying filters...");
+    setShowApplyButton(false);
+  };
+
   return (
     <div className="flex gap-6">
       {/* Desktop Filter Sidebar */}
       <div className="hidden lg:block w-64 flex-shrink-0">
-        <FilterSidebar />
+        <FilterSidebar onFiltersChange={handleFiltersChange} />
       </div>
 
       {/* Products Grid */}
@@ -117,6 +128,15 @@ const Shop = () => {
         )}
 
         {/* ... (Load More Button) ... */}
+      </div>
+      <div
+        className={`fixed bottom-4 left-1/2 -translate-x-1/2 transition-transform duration-300 ease-in-out ${
+          showApplyButton ? "translate-y-0" : "translate-y-[200%]"
+        }`}
+      >
+        <Button onClick={applyFilters} size="lg" variant="premium">
+          Apply Filters
+        </Button>
       </div>
     </div>
   );
