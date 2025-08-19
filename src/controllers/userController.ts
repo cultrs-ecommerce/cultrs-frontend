@@ -13,7 +13,7 @@ export const createUser = async (
   uid: string,
   email: string,
   name: string,
-  location?: string
+  zipCode?: number
 ): Promise<void> => {
   const newUser: Omit<User, "id"> = {
     email,
@@ -25,8 +25,8 @@ export const createUser = async (
     createdAt: Timestamp.now(),
   };
 
-  if (location) {
-    newUser.location = location;
+  if (zipCode) {
+    newUser.zipCode = zipCode;
   }
 
   try {

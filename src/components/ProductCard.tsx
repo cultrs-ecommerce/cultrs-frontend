@@ -54,7 +54,7 @@ const ProductCard = ({
 
         {/* Condition Badge */}
         <Badge
-          variant={condition === "Excellent" ? "default" : "secondary"}
+          variant={condition === "New with tags" ? "default" : "secondary"}
           className="absolute top-2 left-2"
         >
           {condition}

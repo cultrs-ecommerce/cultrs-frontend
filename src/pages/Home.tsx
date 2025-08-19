@@ -250,7 +250,7 @@ const Home = () => {
           </div>
           
           <div className="text-sm text-background/60">
-            © 2024 Heritage. All rights reserved.
+            © 2025 Cultrs.
           </div>
         </div>
       </footer>

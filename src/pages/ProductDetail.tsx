@@ -22,34 +22,13 @@ import { Product } from "@/types/Product";
 import { User as UserType } from "@/types/User";
 import { useAuth } from "@/hooks/useAuth";
 import { createChat } from "@/controllers/chatController";
-import { useAnalytics } from "@/hooks/useAnalytics"; // Import the useAnalytics hook
-
-// Sample data for similar products and reviews (can be replaced with dynamic data)
-import kimonoBurgundy from "@/assets/kimono-burgundy.jpg";
-import dashikiOrange from "@/assets/dashiki-orange.jpg";
-
-const similarProducts = [
-  {
-    id: "2",
-    title: "Traditional Japanese Kimono",
-    price: 145,
-    image: kimonoBurgundy,
-    seller: { name: "Yuki Tanaka", rating: 4.9, avatar: "" },
-    condition: "Like New",
-    size: "L",
-    category: "Kimono",
-  },
-  {
-    id: "3",
-    title: "African Dashiki Shirt",
-    price: 65,
-    image: dashikiOrange,
-    seller: { name: "Kwame Asante", rating: 4.7, avatar: "" },
-    condition: "Good",
-    size: "L",
-    category: "Dashiki",
-  },
-];
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { fetchSellerProducts } from "@/controllers/productController";
+import {
+  fetchZipCodeData,
+  getCity,
+  getState,
+} from "@/lib/zipCodeApi";
 
 const reviews = [
   {
@@ -74,19 +53,22 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [seller, setSeller] = useState<UserType | null>(null);
+  const [sellerLocation, setSellerLocation] = useState<string>(
+    "Location not specified",
+  );
+  const [sellerProducts, setSellerProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { trackProductView } = useAnalytics(); // Use the analytics hook
+  const { trackProductView } = useAnalytics();
 
   useEffect(() => {
     const fetchProductAndSeller = async () => {
       if (!id) return;
       setLoading(true);
       try {
-        // Fetch Product
         const productDocRef = doc(db, "products", id);
         const productDocSnap = await getDoc(productDocRef);
 
@@ -96,21 +78,36 @@ const ProductDetail = () => {
             ...productDocSnap.data(),
           } as Product;
           setProduct(productData);
-          
-          // Track product view
+
           if (user) {
             trackProductView(user.id, productData.id);
           }
 
-          // Fetch Seller
           if (productData.owner_id) {
             const sellerDocRef = doc(db, "users", productData.owner_id);
             const sellerDocSnap = await getDoc(sellerDocRef);
             if (sellerDocSnap.exists()) {
-              setSeller({
+              const sellerData = {
                 id: sellerDocSnap.id,
                 ...sellerDocSnap.data(),
-              } as UserType);
+              } as UserType;
+              setSeller(sellerData);
+
+              // Fetch and set seller location
+              if (sellerData.zipCode) {
+                const locationData = await fetchZipCodeData(sellerData.zipCode);
+                const city = getCity(locationData);
+                const state = getState(locationData);
+                if (city && state) {
+                  setSellerLocation(`From ${city}, ${state}`);
+                }
+              }
+
+              const products = await fetchSellerProducts(
+                sellerData.id,
+                productData.id,
+              );
+              setSellerProducts(products);
             } else {
               setSeller({
                 id: "unknown",
@@ -123,17 +120,6 @@ const ProductDetail = () => {
                 createdAt: Timestamp.now(),
               });
             }
-          } else {
-            setSeller({
-              id: "unknown",
-              name: "Unknown Seller",
-              email: "",
-              listedProducts: [],
-              rating: 0,
-              reviewsCount: 0,
-              itemsSold: 0,
-              createdAt: Timestamp.now(),
-            });
           }
         } else {
           console.log("No such product!");
@@ -198,33 +184,32 @@ const ProductDetail = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
         {/* Images */}
         <div className="flex flex-col-reverse md:flex-row gap-4">
-            <div className="flex md:flex-col gap-2">
-              {product.imageUrls.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`w-20 h-20 rounded-md overflow-hidden border-2 transition-smooth ${
-                    selectedImage === index ? "border-primary" : "border-border"
-                  } bg-white`}
-                >
-                  <img
-                    src={image}
-                    alt={`View ${index + 1}`}
-                    className="w-full h-full object-contain"
-                  />
-                </button>
-              ))}
-            </div>
-
-            <div className="flex-1 rounded-lg overflow-hidden bg-white aspect-square">
-              <img
-                src={product.imageUrls[selectedImage]}
-                alt={product.title}
-                className="w-full h-full object-contain"
-              />
-            </div>
+          <div className="flex md:flex-col gap-2">
+            {product.imageUrls.map((image, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedImage(index)}
+                className={`w-20 h-20 rounded-md overflow-hidden border-2 transition-smooth ${
+                  selectedImage === index ? "border-primary" : "border-border"
+                } bg-white`}
+              >
+                <img
+                  src={image}
+                  alt={`View ${index + 1}`}
+                  className="w-full h-full object-contain"
+                />
+              </button>
+            ))}
           </div>
 
+          <div className="flex-1 rounded-lg overflow-hidden bg-white aspect-square">
+            <img
+              src={product.imageUrls[selectedImage]}
+              alt={product.title}
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
 
         {/* Product Info */}
         <div className="space-y-6">
@@ -282,9 +267,6 @@ const ProductDetail = () => {
 
           {/* Add to Cart */}
           <div className="space-y-3">
-            {/* <Button size="lg" className="w-full" variant="premium">
-              Add to Cart - ${product.price}
-            </Button> */}
             <Button
               size="lg"
               variant="outline"
@@ -342,11 +324,7 @@ const ProductDetail = () => {
                   ({seller.reviewsCount} reviews)
                 </span>
               </div>
-              <p className="text-muted-foreground text-sm">
-                {seller.zipCode
-                  ? `From ${seller.zipCode}`
-                  : "Location not specified"}
-              </p>
+              <p className="text-muted-foreground text-sm">{sellerLocation}</p>
             </div>
             <Button variant="outline">View Profile</Button>
           </div>
@@ -392,7 +370,7 @@ const ProductDetail = () => {
       </div>
 
       {/* Reviews */}
-      <Card className="p-6 mb-12">
+      {/* <Card className="p-6 mb-12">
         <h3 className="text-lg font-semibold mb-6">Recent Reviews</h3>
         <div className="space-y-6">
           {reviews.map((review) => (
@@ -424,17 +402,35 @@ const ProductDetail = () => {
             </div>
           ))}
         </div>
-      </Card>
+      </Card> */}
 
-      {/* Similar Items */}
-      <div>
-        <h3 className="text-2xl font-semibold mb-6">You Might Also Like</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {similarProducts.map((p) => (
-            <ProductCard key={p.id} {...p} />
-          ))}
+      {/* More From This Seller */}
+      {sellerProducts.length > 0 && (
+        <div>
+          <h3 className="text-2xl font-semibold mb-6">
+            More From {seller?.name || "This Seller"}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sellerProducts.map((p) => (
+              <ProductCard
+                key={p.id}
+                id={p.id}
+                title={p.title}
+                price={p.price}
+                image={p.imageUrls[0]}
+                seller={{
+                  name: seller?.name || "Unknown",
+                  rating: seller?.rating || 0,
+                  avatar: seller?.profilePictureUrl || "",
+                }}
+                condition={p.condition}
+                size={p.sizes.join(", ")}
+                category={p.category}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
