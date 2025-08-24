@@ -15,10 +15,12 @@ import {
   limit,
   documentId,
   deleteDoc,
-  addDoc
+  addDoc,
+  updateDoc
 } from 'firebase/firestore';
 import { Product } from "@/types/Product";
 import { ProductImage } from "@/types/ProductImage";
+import { Size } from "@/constants/productEnums";
 
 /**
  * Saves a new product with its images to Firestore.
@@ -68,6 +70,55 @@ export const saveProduct = async (productData: Omit<Product, 'id' | 'imageCount'
     throw new Error("Failed to save product. Please try again.");
   }
 };
+
+/**
+ * Updates an existing product with its images to Firestore.
+ *
+ * @param productId The ID of the product to update.
+ * @param productData The product data to update.
+ * @param newImageFiles An array of new base64 encoded image strings.
+ * @throws Throws an error if the operation fails.
+ */
+export const updateProduct = async (productId: string, productData: {owner_id: string, title: string, price: number, category: string, condition: string, description: string, sizes: Size[], tags: string[], shippingInfo: string, brand?: string, material?: string, careInstructions?: string}, newImageFiles: string[]): Promise<void> => {
+  const batch = writeBatch(db);
+  const productRef = doc(db, "products", productId);
+
+  // 1. Delete old images
+  const oldImages = await getProductImages(productId);
+  oldImages.forEach(image => {
+    const imageRef = doc(db, "productImages", image.id!);
+    batch.delete(imageRef);
+  });
+
+  // 2. Add new images
+  const primaryImageUrl = newImageFiles.length > 0 ? newImageFiles[0] : undefined;
+  newImageFiles.forEach((imageData, index) => {
+    const imageRef = doc(collection(db, "productImages"));
+    const newImage: Omit<ProductImage, 'id'> = {
+      productId: productId,
+      imageData,
+      order: index,
+      uploadedAt: serverTimestamp() as Timestamp,
+      isPrimary: index === 0,
+    };
+    batch.set(imageRef, newImage);
+  });
+  
+  // 3. Update product document
+  batch.update(productRef, {
+    ...productData,
+    imageCount: newImageFiles.length,
+    primaryImageUrl: primaryImageUrl || deleteField(),
+    updatedAt: serverTimestamp()
+  });
+
+  try {
+    await batch.commit();
+  } catch (error) {
+    console.error("Error updating product:", error);
+    throw new Error("Failed to update product.");
+  }
+}
 
 /**
  * Retrieves a single product and all its associated images.

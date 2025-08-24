@@ -6,8 +6,6 @@ import {
   query,
   where,
   getDocs,
-  doc,
-  updateDoc,
 } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { Product } from "@/types/Product";
@@ -19,51 +17,39 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import {
   User,
   MapPin,
   Star,
   Package,
-  MessageCircle,
   Trash2,
   Edit,
-  Eye,
-  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import EditProfileModal from "@/components/EditProfileModal"; // Import the modal
 import { User as UserType } from "@/types/User";
+import { deleteProduct } from "@/controllers/productController";
 
 const Profile = () => {
   const { user, setUser, currentUser, loading } = useAuth();
   const [userProducts, setUserProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [recentComments, setRecentComments] = useState<any[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (currentUser) {
       fetchUserProducts();
-      // For now, we'll simulate recent comments since there's no comments collection
-      setRecentComments([
-        {
-          id: "1",
-          text: "Beautiful piece! Is this still available?",
-          productTitle: "Vintage Silk Saree",
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        },
-        {
-          id: "2",
-          text: "What are the measurements for this kurta?",
-          productTitle: "Traditional Cotton Kurta",
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        },
-      ]);
     }
   }, [currentUser]);
 
@@ -92,44 +78,19 @@ const Profile = () => {
     }
   };
 
-  const handleRemoveProduct = async (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     try {
-      const productRef = doc(db, "products", productId);
-      await updateDoc(productRef, { status: "paused" });
-
-      setUserProducts((prev) =>
-        prev.map((product) =>
-          product.id === productId
-            ? { ...product, status: "paused" as const }
-            : product
-        )
-      );
-
-      toast.success("Product removed from listing");
+      await deleteProduct(productId);
+      setUserProducts((prev) => prev.filter((p) => p.id !== productId));
+      toast.success("Product and all associated images have been deleted.");
     } catch (error) {
-      console.error("Error removing product:", error);
-      toast.error("Failed to remove product");
+      console.error("Error deleting product:", error);
+      toast.error("Failed to delete product.");
     }
   };
 
-  const handleReactivateProduct = async (productId: string) => {
-    try {
-      const productRef = doc(db, "products", productId);
-      await updateDoc(productRef, { status: "active" });
-
-      setUserProducts((prev) =>
-        prev.map((product) =>
-          product.id === productId
-            ? { ...product, status: "active" as const }
-            : product
-        )
-      );
-
-      toast.success("Product reactivated");
-    } catch (error) {
-      console.error("Error reactivating product:", error);
-      toast.error("Failed to reactivate product");
-    }
+  const handleEditProduct = (productId: string) => {
+    navigate(`/sell/${productId}`);
   };
 
   const handleProfileUpdate = (updatedUser: UserType) => {
@@ -153,7 +114,6 @@ const Profile = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // If currentUser exists but user data is still loading from Firestore
   if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -169,7 +129,6 @@ const Profile = () => {
 
   return (
     <div className="m-auto">
-      {/* Profile Header */}
       <div className="mb-8">
         <Card>
           <CardHeader>
@@ -227,7 +186,6 @@ const Profile = () => {
         </Card>
       </div>
 
-      {/* Dashboard Tabs */}
       <Tabs defaultValue="listings" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="listings">My Listings</TabsTrigger>
@@ -235,7 +193,6 @@ const Profile = () => {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        {/* My Listings Tab */}
         <TabsContent value="listings" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">
@@ -264,130 +221,50 @@ const Profile = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {userProducts.map((product) => (
-                <Card key={product.id} className="overflow-hidden">
-                  <div className="aspect-square relative overflow-hidden">
-                    <img
-                      src={product.imageUrls[0] || "/placeholder.svg"}
-                      alt={product.title}
-                      className="object-cover w-full h-full"
-                    />
-                    <Badge
-                      className={`absolute top-2 right-2 ${
-                        product.status === "active"
-                          ? "bg-green-500"
-                          : product.status === "sold"
-                          ? "bg-gray-500"
-                          : product.status === "paused"
-                          ? "bg-yellow-500"
-                          : "bg-blue-500"
-                      }`}
-                    >
-                      {product.status}
-                    </Badge>
-                  </div>
-
-                  <CardContent className="p-4">
-                    <h3 className="font-medium mb-2 line-clamp-2">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Image</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {userProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <img
+                        src={product.primaryImageUrl || "/placeholder.svg"}
+                        alt={product.title}
+                        className="h-16 w-16 object-cover rounded-md"
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">
                       {product.title}
-                    </h3>
-                    <p className="text-xl font-bold text-primary mb-2">
-                      ${product.price}
-                    </p>
-
-                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center space-x-1">
-                          <Eye className="h-3 w-3" />
-                          <span>{product.viewsCount}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Heart className="h-3 w-3" />
-                          <span>{product.likesCount}</span>
-                        </div>
-                      </div>
-                      <Badge variant="secondary">{product.condition}</Badge>
-                    </div>
-
-                    <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => product.id && handleEditProduct(product.id)}
+                      >
+                        <Edit className="h-4 w-4" />
                       </Button>
-                      {product.status === "active" ? (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() =>
-                            product.id && handleRemoveProduct(product.id)
-                          }
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Remove
-                        </Button>
-                      ) : product.status === "paused" ? (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() =>
-                            product.id && handleReactivateProduct(product.id)
-                          }
-                        >
-                          Reactivate
-                        </Button>
-                      ) : null}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => product.id && handleDeleteProduct(product.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </TabsContent>
 
-        {/* Recent Comments Tab */}
-        {/* <TabsContent value="comments" className="space-y-4">
-          <h2 className="text-xl font-semibold">
-            Recent Comments on Your Items
-          </h2>
-
-          {recentComments.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No comments yet</h3>
-                <p className="text-muted-foreground">
-                  Comments from buyers will appear here.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {recentComments.map((comment) => (
-                <Card key={comment.id}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium">{comment.productTitle}</h4>
-                      <span className="text-sm text-muted-foreground">
-                        {comment.createdAt.toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-muted-foreground">{comment.text}</p>
-                    <Separator className="my-3" />
-                    <Button variant="outline" size="sm">
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      Reply
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent> */}
-
-        {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
           <h2 className="text-xl font-semibold">Your Performance</h2>
 
@@ -426,7 +303,7 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {userProducts.reduce((sum, p) => sum + p.viewsCount, 0)}
+                  {userProducts.reduce((sum, p) => sum + (p.viewsCount || 0), 0)}
                 </div>
               </CardContent>
             </Card>
@@ -439,7 +316,7 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {userProducts.reduce((sum, p) => sum + p.likesCount, 0)}
+                  {userProducts.reduce((sum, p) => sum + (p.likesCount || 0), 0)}
                 </div>
               </CardContent>
             </Card>

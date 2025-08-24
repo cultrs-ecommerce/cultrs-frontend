@@ -32,8 +32,8 @@ import {
   Size,
   shippingOptions,
 } from "@/constants/productEnums";
-import { saveProduct } from "@/controllers/productController"; // Changed import
-import { useNavigate } from "react-router-dom";
+import { saveProduct, updateProduct, getProductWithImages } from "@/controllers/productController";
+import { useNavigate, useParams } from "react-router-dom";
 import { auth } from "@/firebaseConfig";
 import { Product } from "@/types/Product";
 
@@ -60,7 +60,6 @@ const listingSchema = z.object({
 
 type ListingFormData = z.infer<typeof listingSchema>;
 
-// Utility function to convert a File to a base64 string
 const toBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -68,7 +67,6 @@ const toBase64 = (file: File): Promise<string> =>
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = (error) => reject(error);
   });
-
 
 const tags = [
   "wedding",
@@ -93,12 +91,13 @@ const tags = [
 
 export default function CreateListing() {
   const navigate = useNavigate();
+  const { productId } = useParams<{ productId: string }>();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<Size[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const form = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
@@ -115,14 +114,41 @@ export default function CreateListing() {
     },
   });
 
+  useEffect(() => {
+    if (productId) {
+      setIsEditMode(true);
+      const fetchProduct = async () => {
+        try {
+          const productData = await getProductWithImages(productId);
+          if (productData) {
+            form.reset(productData);
+            setSelectedTags(productData.tags || []);
+            setSelectedSizes(productData.sizes || []);
+            setImagePreviews(productData.images.map(img => img.imageData));
+          } else {
+            toast.error("Product not found");
+            navigate("/profile");
+          }
+        } catch (error) {
+          console.error("Error fetching product:", error);
+          toast.error("Failed to load product data");
+        }
+      };
+      fetchProduct();
+    }
+  }, [productId, form, navigate]);
+
+
   const selectedCategory = form.watch("category");
   const availableSizesForCategory = selectedCategory
     ? categorySizeMap[selectedCategory]
     : [];
 
   useEffect(() => {
-    setSelectedSizes([]);
-  }, [selectedCategory]);
+    if (!isEditMode) {
+        setSelectedSizes([]);
+    }
+  }, [selectedCategory, isEditMode]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -142,7 +168,7 @@ export default function CreateListing() {
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    URL.revokeObjectURL(imagePreviews[index]);
+    if(images[index]) URL.revokeObjectURL(imagePreviews[index]);
     setImages(newImages);
     setImagePreviews(newPreviews);
   };
@@ -161,7 +187,7 @@ export default function CreateListing() {
 
   const onSubmit = async (data: ListingFormData) => {
     setIsSubmitting(true);
-    if (images.length === 0) {
+    if (imagePreviews.length === 0) {
       toast.error("Please add at least one image");
       setIsSubmitting(false);
       return;
@@ -188,10 +214,9 @@ export default function CreateListing() {
     const ownerId = currentUser.uid;
 
     try {
-        // Convert images to base64
-        const imageBase64Strings = await Promise.all(images.map(toBase64));
+        const imageBase64Strings = images.length > 0 ? await Promise.all(images.map(toBase64)) : imagePreviews;
 
-        const productData: Omit<Product, 'id' | 'imageCount' | 'primaryImageUrl' | 'createdAt' | 'updatedAt' | 'status' | 'likesCount' | 'viewsCount'> = {
+        const productData = {
             owner_id: ownerId,
             title: data.title,
             price: data.price,
@@ -206,12 +231,18 @@ export default function CreateListing() {
             careInstructions: data.careInstructions,
         };
 
-      await saveProduct(productData, imageBase64Strings);
-      toast.success("Listing created successfully!");
-      navigate("/");
+      if (isEditMode && productId) {
+        await updateProduct(productId, productData, imageBase64Strings);
+        toast.success("Listing updated successfully!");
+        navigate("/profile");
+      } else {
+        await saveProduct(productData, imageBase64Strings);
+        toast.success("Listing created successfully!");
+        navigate("/");
+      }
     } catch (error) {
-      console.error("Error creating listing:", error);
-      toast.error("Failed to create listing. Please try again.");
+      console.error("Error saving listing:", error);
+      toast.error("Failed to save listing. Please try again.");
     } finally {
         setIsSubmitting(false);
     }
@@ -221,10 +252,10 @@ export default function CreateListing() {
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Create Your Listing
+          {isEditMode ? "Edit Your Listing" : "Create Your Listing"}
         </h1>
         <p className="text-muted-foreground">
-          Share your beautiful items with our community
+          {isEditMode ? "Update your item details below" : "Share your beautiful items with our community"}
         </p>
       </div>
       <Form {...form}>
@@ -390,7 +421,7 @@ export default function CreateListing() {
                       </button>
                     </div>
                   ))}
-                  {images.length < 5 && (
+                  {imagePreviews.length < 5 && (
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-primary transition-colors">
                       <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                       <span className="text-sm text-muted-foreground">
@@ -537,7 +568,7 @@ export default function CreateListing() {
               Save as Draft
             </Button>
             <Button type="submit" variant="premium" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Listing"}
+              {isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Listing" : "Create Listing")}
             </Button>
           </div>
         </form>
