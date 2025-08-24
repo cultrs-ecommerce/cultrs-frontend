@@ -63,9 +63,9 @@ export async function flushAnalyticsQueue(isUnloading = false) {
       await runTransaction(db, async (transaction) => {
         const { userId, productId } = event;
 
-        const userProductRef = doc(db, `users/${userId}/analytics/products`, productId);
+        const userProductRef = doc(db, `users/${userId}/analytics`, productId);
         const userSummaryRef = doc(db, `users/${userId}/analytics`, "summary");
-        const productUserRef = doc(db, `products/${productId}/analytics/users`, userId);
+        const productUserRef = doc(db, `products/${productId}/analytics`, userId);
         const productSummaryRef = doc(db, `products/${productId}/analytics`, "summary");
 
         const [

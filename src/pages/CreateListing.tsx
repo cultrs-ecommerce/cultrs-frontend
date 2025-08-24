@@ -32,7 +32,7 @@ import {
   Size,
   shippingOptions,
 } from "@/constants/productEnums";
-import { createProduct } from "@/controllers/productController";
+import { saveProduct } from "@/controllers/productController"; // Changed import
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/firebaseConfig";
 import { Product } from "@/types/Product";
@@ -59,15 +59,16 @@ const listingSchema = z.object({
 });
 
 type ListingFormData = z.infer<typeof listingSchema>;
-type ProductDataWithoutImages = Omit<
-  Product,
-  | "imageUrls"
-  | "createdAt"
-  | "updatedAt"
-  | "status"
-  | "likesCount"
-  | "viewsCount"
->;
+
+// Utility function to convert a File to a base64 string
+const toBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+
 
 const tags = [
   "wedding",
@@ -96,6 +97,8 @@ export default function CreateListing() {
   const [selectedSizes, setSelectedSizes] = useState<Size[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const form = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
@@ -157,50 +160,60 @@ export default function CreateListing() {
   };
 
   const onSubmit = async (data: ListingFormData) => {
+    setIsSubmitting(true);
     if (images.length === 0) {
       toast.error("Please add at least one image");
+      setIsSubmitting(false);
       return;
     }
 
     if (selectedTags.length === 0) {
       toast.error("Please select at least one tag");
+      setIsSubmitting(false);
       return;
     }
 
     if (availableSizesForCategory.length > 0 && selectedSizes.length === 0) {
       toast.error("Please select at least one size");
+      setIsSubmitting(false);
       return;
     }
 
     const currentUser = auth.currentUser;
     if (!currentUser) {
       toast.error("You must be logged in to create a listing.");
+      setIsSubmitting(false);
       return;
     }
     const ownerId = currentUser.uid;
 
-    const productData: ProductDataWithoutImages = {
-      ...data,
-      tags: selectedTags,
-      sizes: selectedSizes,
-      owner_id: ownerId,
-      title: data.title ?? "",
-      price: data.price ?? 0,
-      category: data.category ?? categories[0],
-      condition: data.condition ?? conditions[0],
-      brand: data.brand ?? "",
-      description: data.description ?? "",
-      material: data.material ?? "",
-      shippingInfo: data.shippingInfo ?? shippingOptions[0],
-    };
-
     try {
-      await createProduct(productData, images);
+        // Convert images to base64
+        const imageBase64Strings = await Promise.all(images.map(toBase64));
+
+        const productData: Omit<Product, 'id' | 'imageCount' | 'primaryImageUrl' | 'createdAt' | 'updatedAt' | 'status' | 'likesCount' | 'viewsCount'> = {
+            owner_id: ownerId,
+            title: data.title,
+            price: data.price,
+            category: data.category,
+            condition: data.condition,
+            description: data.description,
+            shippingInfo: data.shippingInfo,
+            tags: selectedTags,
+            sizes: selectedSizes,
+            brand: data.brand,
+            material: data.material,
+            careInstructions: data.careInstructions,
+        };
+
+      await saveProduct(productData, imageBase64Strings);
       toast.success("Listing created successfully!");
       navigate("/");
     } catch (error) {
       console.error("Error creating listing:", error);
       toast.error("Failed to create listing. Please try again.");
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -247,7 +260,9 @@ export default function CreateListing() {
                       <FormControl>
                         <Input
                           type="number"
+                          step="0.01"
                           placeholder="$0.00"
+                          min={0}
                           {...field}
                           value={field.value ?? ""}
                         />
@@ -375,7 +390,7 @@ export default function CreateListing() {
                       </button>
                     </div>
                   ))}
-                  {images.length <= 5 && (
+                  {images.length < 5 && (
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-primary transition-colors">
                       <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                       <span className="text-sm text-muted-foreground">
@@ -392,8 +407,8 @@ export default function CreateListing() {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Upload up to 5 high-quality images. The first image will
-                  be used as the main photo.
+                  Upload up to 5 high-quality images. The first image will be
+                  used as the main photo.
                 </p>
               </div>
             </CardContent>
@@ -404,9 +419,7 @@ export default function CreateListing() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="text-sm font-medium mb-3 block">
-                  Tags *
-                </label>
+                <label className="text-sm font-medium mb-3 block">Tags *</label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => (
                     <Badge
@@ -497,10 +510,7 @@ export default function CreateListing() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Shipping Information</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select shipping option" />
@@ -510,8 +520,8 @@ export default function CreateListing() {
                         {shippingOptions.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option
-                              .replace("_", " ")
-                              .replace(/ w/g, (l) => l.toUpperCase())}{" "}
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -523,11 +533,11 @@ export default function CreateListing() {
             </CardContent>
           </Card>
           <div className="flex justify-end space-x-4">
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" disabled={isSubmitting}>
               Save as Draft
             </Button>
-            <Button type="submit" variant="premium">
-              Create Listing
+            <Button type="submit" variant="premium" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Listing"}
             </Button>
           </div>
         </form>

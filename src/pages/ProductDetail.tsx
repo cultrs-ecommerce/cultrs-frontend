@@ -19,39 +19,23 @@ import ProductCard from "@/components/ProductCard";
 import { db } from "@/firebaseConfig";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { Product } from "@/types/Product";
+import { ProductImage } from "@/types/ProductImage"; // Import ProductImage
 import { User as UserType } from "@/types/User";
 import { useAuth } from "@/hooks/useAuth";
 import { createChat } from "@/controllers/chatController";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { fetchSellerProducts } from "@/controllers/productController";
+import { getProductWithImages, fetchSellerProducts } from "@/controllers/productController"; // Import getProductWithImages
 import {
   fetchZipCodeData,
   getCity,
   getState,
 } from "@/lib/zipCodeApi";
 
-const reviews = [
-  {
-    id: 1,
-    user: "Sarah Chen",
-    rating: 5,
-    date: "2024-01-15",
-    comment:
-      "Beautiful item! The embroidery is stunning and the fit is perfect. The seller was very responsive and shipped quickly.",
-  },
-  {
-    id: 2,
-    user: "Michael Rodriguez",
-    rating: 4,
-    date: "2024-01-10",
-    comment:
-      "Good quality piece. Exactly as described. Would recommend this seller.",
-  },
-];
+type ProductWithImages = Product & { images: ProductImage[] };
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductWithImages | null>(null);
   const [seller, setSeller] = useState<UserType | null>(null);
   const [sellerLocation, setSellerLocation] = useState<string>(
     "Location not specified",
@@ -69,17 +53,15 @@ const ProductDetail = () => {
       if (!id) return;
       setLoading(true);
       try {
-        const productDocRef = doc(db, "products", id);
-        const productDocSnap = await getDoc(productDocRef);
+        const productData = await getProductWithImages(id);
 
-        if (productDocSnap.exists()) {
-          const productData = {
-            id: productDocSnap.id,
-            ...productDocSnap.data(),
-          } as Product;
+        console.log(productData);
+        console.log(id);
+
+        if (productData) {
           setProduct(productData);
 
-          if (user) {
+          if (user && productData.id) {
             trackProductView(user.id, productData.id);
           }
 
@@ -93,7 +75,6 @@ const ProductDetail = () => {
               } as UserType;
               setSeller(sellerData);
 
-              // Fetch and set seller location
               if (sellerData.zipCode) {
                 const locationData = await fetchZipCodeData(sellerData.zipCode);
                 const city = getCity(locationData);
@@ -103,11 +84,14 @@ const ProductDetail = () => {
                 }
               }
 
-              const products = await fetchSellerProducts(
-                sellerData.id,
-                productData.id,
-              );
-              setSellerProducts(products);
+              if (productData.id) {
+                const products = await fetchSellerProducts(
+                  sellerData.id,
+                  productData.id,
+                );
+                setSellerProducts(products);
+              }
+
             } else {
               setSeller({
                 id: "unknown",
@@ -185,16 +169,16 @@ const ProductDetail = () => {
         {/* Images */}
         <div className="flex flex-col-reverse md:flex-row gap-4">
           <div className="flex md:flex-col gap-2">
-            {product.imageUrls.map((image, index) => (
+            {product.images.map((image, index) => (
               <button
-                key={index}
+                key={image.id || index}
                 onClick={() => setSelectedImage(index)}
                 className={`w-20 h-20 rounded-md overflow-hidden border-2 transition-smooth ${
                   selectedImage === index ? "border-primary" : "border-border"
                 } bg-white`}
               >
                 <img
-                  src={image}
+                  src={image.imageData}
                   alt={`View ${index + 1}`}
                   className="w-full h-full object-contain"
                 />
@@ -203,11 +187,13 @@ const ProductDetail = () => {
           </div>
 
           <div className="flex-1 rounded-lg overflow-hidden bg-white aspect-square">
-            <img
-              src={product.imageUrls[selectedImage]}
-              alt={product.title}
-              className="w-full h-full object-contain"
-            />
+            {product.images.length > 0 && (
+              <img
+                src={product.images[selectedImage].imageData}
+                alt={product.title}
+                className="w-full h-full object-contain"
+              />
+            )}
           </div>
         </div>
 
@@ -240,7 +226,7 @@ const ProductDetail = () => {
 
             <div className="flex items-center space-x-4 mb-4">
               <span className="text-3xl font-bold text-primary">
-                ${product.price}
+                ${product.price.toFixed(2)}
               </span>
             </div>
           </div>
@@ -369,41 +355,6 @@ const ProductDetail = () => {
         </Card>
       </div>
 
-      {/* Reviews */}
-      {/* <Card className="p-6 mb-12">
-        <h3 className="text-lg font-semibold mb-6">Recent Reviews</h3>
-        <div className="space-y-6">
-          {reviews.map((review) => (
-            <div
-              key={review.id}
-              className="border-b border-border last:border-b-0 pb-4 last:pb-0"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{review.user}</span>
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${
-                          i < review.rating
-                            ? "fill-accent text-accent"
-                            : "text-muted"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {review.date}
-                </span>
-              </div>
-              <p className="text-muted-foreground">{review.comment}</p>
-            </div>
-          ))}
-        </div>
-      </Card> */}
-
       {/* More From This Seller */}
       {sellerProducts.length > 0 && (
         <div>
@@ -417,7 +368,7 @@ const ProductDetail = () => {
                 id={p.id}
                 title={p.title}
                 price={p.price}
-                image={p.imageUrls[0]}
+                image={p.primaryImageUrl || ""}
                 seller={{
                   name: seller?.name || "Unknown",
                   rating: seller?.rating || 0,

@@ -8,6 +8,7 @@ import { Product } from "@/types/Product";
 import { User } from "@/types/User";
 import { isEqual } from "lodash";
 import { useLocation } from "react-router-dom";
+import { getAllProductsWithPrimaryImages } from "@/controllers/productController";
 
 interface ProductWithSeller extends Product {
   seller: User;
@@ -29,11 +30,7 @@ const Shop = () => {
     const fetchProductsAndSellers = async () => {
       setLoading(true);
       try {
-        const productsSnapshot = await getDocs(collection(db, "products"));
-        const productsData = productsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Product[];
+        const productsData = await getAllProductsWithPrimaryImages();
 
         const productsWithSellers: ProductWithSeller[] = await Promise.all(
           productsData.map(async (product) => {
@@ -167,7 +164,7 @@ const Shop = () => {
                   id={product.id}
                   title={product.title}
                   price={product.price}
-                  image={product.imageUrls[0]}
+                  image={product.primaryImageUrl || ""}
                   seller={{
                     name: product.seller.name,
                     rating: product.seller.rating,

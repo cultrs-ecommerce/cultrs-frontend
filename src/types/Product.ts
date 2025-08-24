@@ -11,7 +11,6 @@ export interface Product {
   brand?: string; // string (optional)
   description: string; // string
   sizes: Size[]; // Use the Size union type for the array elements
-  imageUrls: string[]; // array of strings (Cloud Storage download URLs, max 3)
   tags: string[]; // array of strings
   shippingInfo: ShippingOption; // Use the ShippingOption union type
   measurements?: string; // string (optional)
@@ -22,4 +21,6 @@ export interface Product {
   status: 'active' | 'sold' | 'draft' | 'paused'; // string (track listing status)
   likesCount: number; // number (to track likes/favorites)
   viewsCount: number; // number (to track views)
+  imageCount: number; // Track how many images this product has
+  primaryImageUrl?: string; // Optional: store compressed thumbnail for quick loading
 }

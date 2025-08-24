@@ -17,6 +17,8 @@ import CompleteProfile from "./pages/CompleteProfile";
 import Profile from "./pages/Profile";
 import Logout from "./pages/Logout";
 import ChatPage from "./pages/ChatPage";
+import LoginWall from "./components/LoginWall";
+import MigrationPage from "./pages/MigrationPage"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -51,7 +53,7 @@ const App = () => (
               <Route element={<MainLayout />}>
                 <Route path="/shop" element={<Shop />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/sell" element={<CreateListing />} />
+                <Route path="/sell" element={<LoginWall><CreateListing /></LoginWall>} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
 
@@ -63,6 +65,11 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/complete-profile" element={<CompleteProfile />} />
               <Route path="/logout" element={<Logout />} />
+
+              {/* Conditionally render the migration route only in development */}
+              {import.meta.env.DEV && (
+                <Route path="/migrate" element={<MigrationPage />} />
+              )}
 
               <Route path="*" element={<NotFound />} />
             </Routes>
