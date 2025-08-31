@@ -21,6 +21,8 @@ import {
 import { Product } from "@/types/Product";
 import { ProductImage } from "@/types/ProductImage";
 import { Size } from "@/constants/productEnums";
+import { ProductWithSeller } from "@/types/ProductWithSeller";
+import { User } from "@/types/User";
 
 /**
  * Saves a new product with its images to Firestore.
@@ -439,4 +441,78 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         console.error("Error searching products:", error);
         throw error;
     }
+};
+
+/**
+ * Retrieves the latest product listings.
+ * @param count The number of listings to retrieve.
+ * @returns A promise that resolves to an array of the latest products.
+ */
+export const getLatestListings = async (count = 10): Promise<Product[]> => {
+  try {
+    const productsRef = collection(db, "products");
+    const q = query(
+      productsRef,
+      where("status", "==", "active"),
+      orderBy("createdAt", "desc"),
+      limit(count)
+    );
+    const querySnapshot = await getDocs(q);
+    const products: Product[] = [];
+    querySnapshot.forEach((doc) => {
+      products.push({ id: doc.id, ...doc.data() } as Product);
+    });
+
+    const productsWithOwners = await Promise.all(products.map(async (product) => {
+      if (product.owner_id) {
+        const userRef = doc(db, "users", product.owner_id);
+        const userSnap = await getDoc(userRef);
+        const ownerName = userSnap.exists() ? (userSnap.data() as any).name : 'Unknown Seller';
+        return { ...product, seller: {name: ownerName} };
+      }
+      return { ...product, seller: {name: 'Unknown Seller'} };
+    }));
+
+    return productsWithOwners as ProductWithSeller[];
+  } catch (error) {
+    console.error("Error fetching latest listings:", error);
+    throw new Error("Failed to fetch latest listings.");
+  }
+};
+
+export const fetchProductsAndSellers = async (filter?: string): Promise<ProductWithSeller[]> => {
+  try {
+    const productsRef = collection(db, "products");
+    let q = query(productsRef, where("status", "==", "active"));
+
+    if (filter === 'newlyCreated') {
+      q = query(q, orderBy("createdAt", "desc"));
+    }
+
+    const querySnapshot = await getDocs(q);
+    const productsData: Product[] = [];
+    querySnapshot.forEach((doc) => {
+      productsData.push({ id: doc.id, ...doc.data() } as Product);
+    });
+
+    const productsWithSellers: ProductWithSeller[] = await Promise.all(
+      productsData.map(async (product) => {
+        let seller: User;
+        if (product.owner_id) {
+          const userDocRef = doc(db, "users", product.owner_id);
+          const userDocSnap = await getDoc(userDocRef);
+          seller = userDocSnap.exists()
+            ? ({ id: userDocSnap.id, ...userDocSnap.data() } as User)
+            : { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
+        } else {
+          seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
+        }
+        return { ...product, seller };
+      })
+    );
+    return productsWithSellers;
+  } catch (error) {
+    console.error("Error fetching data: ", error);
+    throw new Error("Failed to fetch products and sellers.");
+  }
 };

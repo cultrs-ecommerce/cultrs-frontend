@@ -3,20 +3,17 @@ import { Button } from "@/components/ui/button";
 import FilterSidebar, { Filters } from "@/components/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
 import { db } from "@/firebaseConfig";
-import { collection, getDocs, doc, getDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { Product } from "@/types/Product";
 import { User } from "@/types/User";
 import { isEqual } from "lodash";
 import { useLocation } from "react-router-dom";
-import { getAllProductsWithPrimaryImages } from "@/controllers/productController";
-
-interface ProductWithSeller extends Product {
-  seller: User;
-}
+import { fetchProductsAndSellers } from "@/controllers/productController";
+import { ProductWithSeller } from "@/types/ProductWithSeller";
 
 const Shop = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [allProducts, setAllProducts] = useState<ProductWithSeller[]>([]);
+  const [products, setProducts] = useState<ProductWithSeller[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductWithSeller[]>([]);
   const [loading, setLoading] = useState(true);
   const [showApplyButton, setShowApplyButton] = useState(false);
@@ -24,30 +21,33 @@ const Shop = () => {
   const appliedFilters = useRef<Filters | null>(null);
   const location = useLocation();
   const { searchResults, searchQuery } = location.state || { searchResults: null, searchQuery: "" };
-  const [baseProducts, setBaseProducts] = useState<ProductWithSeller[]>([]);
 
   useEffect(() => {
-    const fetchProductsAndSellers = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const productsData = await getAllProductsWithPrimaryImages();
-
-        const productsWithSellers: ProductWithSeller[] = await Promise.all(
-          productsData.map(async (product) => {
-            let seller: User;
-            if (product.owner_id) {
-              const userDocRef = doc(db, "users", product.owner_id);
-              const userDocSnap = await getDoc(userDocRef);
-              seller = userDocSnap.exists()
-                ? ({ id: userDocSnap.id, ...userDocSnap.data() } as User)
-                : { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
-            } else {
-              seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
-            }
-            return { ...product, seller };
-          })
-        );
-        setAllProducts(productsWithSellers);
+        let productsWithSellers: ProductWithSeller[];
+        if (searchResults) {
+          productsWithSellers = await Promise.all(
+            searchResults.map(async (product: Product) => {
+              let seller: User;
+              if (product.owner_id) {
+                const userDocRef = doc(db, "users", product.owner_id);
+                const userDocSnap = await getDoc(userDocRef);
+                seller = userDocSnap.exists()
+                  ? ({ id: userDocSnap.id, ...userDocSnap.data() } as User)
+                  : { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
+              } else {
+                seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
+              }
+              return { ...product, seller };
+            })
+          );
+        } else {
+          productsWithSellers = await fetchProductsAndSellers();
+        }
+        setProducts(productsWithSellers);
+        setFilteredProducts(productsWithSellers);
       } catch (error) {
         console.error("Error fetching data: ", error);
       } finally {
@@ -55,44 +55,8 @@ const Shop = () => {
       }
     };
 
-    fetchProductsAndSellers();
-  }, []);
-
-  useEffect(() => {
-    const processProducts = async () => {
-      let productsToProcess: Product[] = [];
-      if (searchResults) {
-        productsToProcess = searchResults;
-      } else {
-        productsToProcess = allProducts;
-      }
-
-      const productsWithSellers: ProductWithSeller[] = await Promise.all(
-        productsToProcess.map(async (product) => {
-          if ('seller' in product) {
-            return product as ProductWithSeller;
-          }
-          let seller: User;
-          if (product.owner_id) {
-            const userDocRef = doc(db, "users", product.owner_id);
-            const userDocSnap = await getDoc(userDocRef);
-            seller = userDocSnap.exists()
-              ? ({ id: userDocSnap.id, ...userDocSnap.data() } as User)
-              : { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
-          } else {
-            seller = { id: 'unknown', name: 'Unknown Seller', email: '', listedProducts: [], rating: 0, reviewsCount: 0, itemsSold: 0, createdAt: Timestamp.now() };
-          }
-          return { ...product, seller };
-        })
-      );
-      setBaseProducts(productsWithSellers);
-      setFilteredProducts(productsWithSellers);
-    };
-
-    if (!loading) {
-      processProducts();
-    }
-  }, [searchResults, allProducts, loading]);
+    fetchData();
+  }, [searchResults]);
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {
     setPendingFilters(newFilters);
@@ -102,7 +66,7 @@ const Shop = () => {
   const applyFilters = useCallback(() => {
     if (!pendingFilters) return;
 
-    let tempFilteredProducts = [...baseProducts];
+    let tempFilteredProducts = [...products];
 
     const minPrice = parseFloat(pendingFilters.minPrice);
     if (!isNaN(minPrice)) {
@@ -135,7 +99,7 @@ const Shop = () => {
     setFilteredProducts(tempFilteredProducts);
     appliedFilters.current = pendingFilters;
     setShowApplyButton(false);
-  }, [pendingFilters, baseProducts]);
+  }, [pendingFilters, products]);
 
   return (
     <div className="flex gap-6">
