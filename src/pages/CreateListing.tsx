@@ -60,14 +60,6 @@ const listingSchema = z.object({
 
 type ListingFormData = z.infer<typeof listingSchema>;
 
-const toBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-  });
-
 const tags = [
   "wedding",
   "casual",
@@ -187,7 +179,7 @@ export default function CreateListing() {
 
   const onSubmit = async (data: ListingFormData) => {
     setIsSubmitting(true);
-    if (imagePreviews.length === 0) {
+    if (images.length === 0) {
       toast.error("Please add at least one image");
       setIsSubmitting(false);
       return;
@@ -214,8 +206,6 @@ export default function CreateListing() {
     const ownerId = currentUser.uid;
 
     try {
-        const imageBase64Strings = images.length > 0 ? await Promise.all(images.map(toBase64)) : imagePreviews;
-
         const productData = {
             owner_id: ownerId,
             title: data.title,
@@ -232,11 +222,11 @@ export default function CreateListing() {
         };
 
       if (isEditMode && productId) {
-        await updateProduct(productId, productData, imageBase64Strings);
+        await updateProduct(productId, productData, images);
         toast.success("Listing updated successfully!");
         navigate("/profile");
       } else {
-        await saveProduct(productData, imageBase64Strings);
+        await saveProduct(productData, images);
         toast.success("Listing created successfully!");
         navigate("/");
       }

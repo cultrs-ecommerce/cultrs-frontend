@@ -79,6 +79,7 @@ const Profile = () => {
   };
 
   const handleDeleteProduct = async (productId: string) => {
+    if (!productId) return;
     try {
       await deleteProduct(productId);
       setUserProducts((prev) => prev.filter((p) => p.id !== productId));
@@ -90,6 +91,7 @@ const Profile = () => {
   };
 
   const handleEditProduct = (productId: string) => {
+    if (!productId) return;
     navigate(`/sell/${productId}`);
   };
 
@@ -246,14 +248,14 @@ const Profile = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => product.id && handleEditProduct(product.id)}
+                        onClick={() => handleEditProduct(product.id!)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => product.id && handleDeleteProduct(product.id)}
+                        onClick={() => handleDeleteProduct(product.id!)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

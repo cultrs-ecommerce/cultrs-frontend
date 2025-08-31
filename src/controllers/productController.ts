@@ -23,25 +23,85 @@ import { ProductImage } from "@/types/ProductImage";
 import { Size } from "@/constants/productEnums";
 import { ProductWithSeller } from "@/types/ProductWithSeller";
 import { User } from "@/types/User";
+import {
+  validateImageFiles as validateFiles,
+  compressImageArray,
+  generateThumbnail,
+  ValidationResult,
+} from '@/lib/ImageCompressionUtils';
+
 
 /**
- * Saves a new product with its images to Firestore.
+ * Converts a File object to a base64 string.
+ * @param file The file to convert.
+ * @returns A promise that resolves with the base64 string.
+ */
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
+/**
+ * Validates image files before processing.
+ * @param imageFiles An array of File objects.
+ * @returns A validation result object.
+ */
+export const validateImages = (imageFiles: File[]): ValidationResult => {
+    return validateFiles(imageFiles);
+};
+
+/**
+ * Saves a new product with its images to Firestore after compression.
  * This function uses a batch write to ensure atomic operations.
  *
  * @param productData The product data (without images).
- * @param imageFiles An array of base64 encoded image strings.
+ * @param imageFiles An array of File objects for the product images.
  * @returns The ID of the newly created product.
- * @throws Throws an error if the operation fails.
+ * @throws Throws an error if validation or the save operation fails.
  */
-export const saveProduct = async (productData: Omit<Product, 'id' | 'imageCount' | 'primaryImageUrl' | 'createdAt' | 'updatedAt' | 'status' | 'likesCount' | 'viewsCount'>, imageFiles: string[]): Promise<string> => {
+export const saveProduct = async (
+  productData: Omit<Product, 'id' | 'imageCount' | 'primaryImageUrl' | 'createdAt' | 'updatedAt' | 'status' | 'likesCount' | 'viewsCount'>,
+  imageFiles: File[]
+): Promise<string> => {
+  // 1. Validate images
+  const validation = validateImages(imageFiles);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join(' '));
+  }
+
+  // 2. Convert files to base64
+  const base64Images = await Promise.all(imageFiles.map(fileToBase64));
+  const imageObjects = base64Images.map(base64 => ({ base64 }));
+
+  // 3. Compress images
+  console.log("Starting image compression...");
+  const compressedResults = await compressImageArray(imageObjects);
+  const failedCompressions = compressedResults.filter(r => !r.success);
+  if (failedCompressions.length > 0) {
+    // Optionally, handle partially successful uploads or just fail
+    throw new Error(`Failed to compress ${failedCompressions.length} images to the required size.`);
+  }
+
+  const compressedImagesData = compressedResults.map(r => r.compressedBase64);
+
+  // 4. Generate Thumbnail
+  let primaryImageUrl: string | undefined = undefined;
+  if (compressedImagesData.length > 0) {
+    console.log("Generating thumbnail...");
+    primaryImageUrl = await generateThumbnail(compressedImagesData[0]);
+  }
+
+  // 5. Prepare and execute batch write to Firestore
   const batch = writeBatch(db);
   const productRef = doc(collection(db, "products"));
 
-  const primaryImageUrl = imageFiles.length > 0 ? imageFiles[0] : undefined;
-
   const newProduct: Omit<Product, 'id'> = {
     ...productData,
-    imageCount: imageFiles.length,
+    imageCount: compressedImagesData.length,
     primaryImageUrl,
     createdAt: serverTimestamp() as Timestamp,
     updatedAt: serverTimestamp() as Timestamp,
@@ -49,10 +109,9 @@ export const saveProduct = async (productData: Omit<Product, 'id' | 'imageCount'
     likesCount: 0,
     viewsCount: 0,
   };
-
   batch.set(productRef, newProduct);
 
-  imageFiles.forEach((imageData, index) => {
+  compressedImagesData.forEach((imageData, index) => {
     const imageRef = doc(collection(db, "productImages"));
     const newImage: Omit<ProductImage, 'id'> = {
       productId: productRef.id,
@@ -66,12 +125,90 @@ export const saveProduct = async (productData: Omit<Product, 'id' | 'imageCount'
 
   try {
     await batch.commit();
+    console.log(`Product saved successfully with ID: ${productRef.id}`);
     return productRef.id;
   } catch (error) {
     console.error("Error saving product:", error);
     throw new Error("Failed to save product. Please try again.");
   }
 };
+
+/**
+ * Updates the images for a given product with new, compressed images.
+ * This function will delete all existing images and replace them with the new ones.
+ *
+ * @param productId The ID of the product to update.
+ * @param newImageFiles An array of new File objects for the images.
+ * @throws Throws an error if validation or the update operation fails.
+ */
+export const updateProductImages = async (productId: string, newImageFiles: File[]): Promise<void> => {
+  // 1. Validate new images
+  const validation = validateImages(newImageFiles);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join(' '));
+  }
+  
+  // 2. Convert and compress new images
+  console.log(`Starting image compression for product update: ${productId}`);
+  const base64Images = await Promise.all(newImageFiles.map(fileToBase64));
+  const imageObjects = base64Images.map(base64 => ({ base64 }));
+  
+  const compressedResults = await compressImageArray(imageObjects);
+  const failedCompressions = compressedResults.filter(r => !r.success);
+  if (failedCompressions.length > 0) {
+    throw new Error(`Failed to compress ${failedCompressions.length} new images.`);
+  }
+  
+  const newCompressedImages = compressedResults.map(r => r.compressedBase64);
+
+  // 3. Generate new thumbnail
+  let newPrimaryImageUrl: string | undefined = undefined;
+  if (newCompressedImages.length > 0) {
+    console.log("Generating new thumbnail...");
+    newPrimaryImageUrl = await generateThumbnail(newCompressedImages[0]);
+  }
+
+  const batch = writeBatch(db);
+  const productRef = doc(db, "products", productId);
+
+  // 4. Delete old images
+  const oldImages = await getProductImages(productId);
+  console.log(`Deleting ${oldImages.length} old images.`);
+  oldImages.forEach(image => {
+    const imageRef = doc(db, "productImages", image.id!);
+    batch.delete(imageRef);
+  });
+
+  // 5. Add new images
+  console.log(`Adding ${newCompressedImages.length} new images.`);
+  newCompressedImages.forEach((imageData, index) => {
+    const imageRef = doc(collection(db, "productImages"));
+    const newImage: Omit<ProductImage, 'id'> = {
+      productId: productId,
+      imageData,
+      order: index,
+      uploadedAt: serverTimestamp() as Timestamp,
+      isPrimary: index === 0,
+    };
+    batch.set(imageRef, newImage);
+  });
+
+  // 6. Update product document with new image info
+  batch.update(productRef, {
+    imageCount: newCompressedImages.length,
+    primaryImageUrl: newPrimaryImageUrl || deleteField(),
+    updatedAt: serverTimestamp()
+  });
+
+  try {
+    await batch.commit();
+    console.log("Product images updated successfully.");
+  } catch (error) {
+    console.error("Error updating product images:", error);
+    throw new Error("Failed to update product images.");
+  }
+};
+
 
 /**
  * Updates an existing product with its images to Firestore.
@@ -81,9 +218,34 @@ export const saveProduct = async (productData: Omit<Product, 'id' | 'imageCount'
  * @param newImageFiles An array of new base64 encoded image strings.
  * @throws Throws an error if the operation fails.
  */
-export const updateProduct = async (productId: string, productData: {owner_id: string, title: string, price: number, category: string, condition: string, description: string, sizes: Size[], tags: string[], shippingInfo: string, brand?: string, material?: string, careInstructions?: string}, newImageFiles: string[]): Promise<void> => {
+export const updateProduct = async (productId: string, productData: {owner_id: string, title: string, price: number, category: string, condition: string, description: string, sizes: Size[], tags: string[], shippingInfo: string, brand?: string, material?: string, careInstructions?: string}, newImageFiles: File[]): Promise<void> => {
   const batch = writeBatch(db);
   const productRef = doc(db, "products", productId);
+
+  const validation = validateImages(newImageFiles);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join(' '));
+  }
+  
+  // 2. Convert and compress new images
+  console.log(`Starting image compression for product update: ${productId}`);
+  const base64Images = await Promise.all(newImageFiles.map(fileToBase64));
+  const imageObjects = base64Images.map(base64 => ({ base64 }));
+  
+  const compressedResults = await compressImageArray(imageObjects);
+  const failedCompressions = compressedResults.filter(r => !r.success);
+  if (failedCompressions.length > 0) {
+    throw new Error(`Failed to compress ${failedCompressions.length} new images.`);
+  }
+  
+  const newCompressedImages = compressedResults.map(r => r.compressedBase64);
+
+  // 3. Generate new thumbnail
+  let newPrimaryImageUrl: string | undefined = undefined;
+  if (newCompressedImages.length > 0) {
+    console.log("Generating new thumbnail...");
+    newPrimaryImageUrl = await generateThumbnail(newCompressedImages[0]);
+  }
 
   // 1. Delete old images
   const oldImages = await getProductImages(productId);
@@ -93,8 +255,7 @@ export const updateProduct = async (productId: string, productData: {owner_id: s
   });
 
   // 2. Add new images
-  const primaryImageUrl = newImageFiles.length > 0 ? newImageFiles[0] : undefined;
-  newImageFiles.forEach((imageData, index) => {
+  newCompressedImages.forEach((imageData, index) => {
     const imageRef = doc(collection(db, "productImages"));
     const newImage: Omit<ProductImage, 'id'> = {
       productId: productId,
@@ -109,8 +270,8 @@ export const updateProduct = async (productId: string, productData: {owner_id: s
   // 3. Update product document
   batch.update(productRef, {
     ...productData,
-    imageCount: newImageFiles.length,
-    primaryImageUrl: primaryImageUrl || deleteField(),
+    imageCount: newCompressedImages.length,
+    primaryImageUrl: newPrimaryImageUrl || deleteField(),
     updatedAt: serverTimestamp()
   });
 
@@ -191,54 +352,6 @@ export const getAllProductsWithPrimaryImages = async (): Promise<Product[]> => {
         console.error("Error fetching all products:", error);
         throw error;
     }
-};
-
-/**
- * Updates the images for a given product.
- * This function will delete all existing images and replace them with the new ones.
- *
- * @param productId The ID of the product to update.
- * @param newImages An array of new base64 encoded image strings.
- * @throws Throws an error if the operation fails.
- */
-export const updateProductImages = async (productId: string, newImages: string[]): Promise<void> => {
-  const batch = writeBatch(db);
-  const productRef = doc(db, "products", productId);
-
-  // 1. Delete old images
-  const oldImages = await getProductImages(productId);
-  oldImages.forEach(image => {
-    const imageRef = doc(db, "productImages", image.id!);
-    batch.delete(imageRef);
-  });
-
-  // 2. Add new images
-  const primaryImageUrl = newImages.length > 0 ? newImages[0] : undefined;
-  newImages.forEach((imageData, index) => {
-    const imageRef = doc(collection(db, "productImages"));
-    const newImage: Omit<ProductImage, 'id'> = {
-      productId: productId,
-      imageData,
-      order: index,
-      uploadedAt: serverTimestamp() as Timestamp,
-      isPrimary: index === 0,
-    };
-    batch.set(imageRef, newImage);
-  });
-
-  // 3. Update product document
-  batch.update(productRef, {
-    imageCount: newImages.length,
-    primaryImageUrl: primaryImageUrl || deleteField(),
-    updatedAt: serverTimestamp()
-  });
-
-  try {
-    await batch.commit();
-  } catch (error) {
-    console.error("Error updating product images:", error);
-    throw new Error("Failed to update product images.");
-  }
 };
 
 /**
