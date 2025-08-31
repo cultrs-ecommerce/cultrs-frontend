@@ -191,7 +191,7 @@ const Profile = () => {
       <Tabs defaultValue="listings" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="listings">My Listings</TabsTrigger>
-          <TabsTrigger value="comments">Recent Comments</TabsTrigger>
+          {/* <TabsTrigger value="comments">Recent Comments</TabsTrigger> */}
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
