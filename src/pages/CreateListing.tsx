@@ -35,7 +35,7 @@ import {
 import { saveProduct, updateProduct, getProductWithImages } from "@/controllers/productController";
 import { useNavigate, useParams } from "react-router-dom";
 import { auth } from "@/firebaseConfig";
-import { Product } from "@/types/Product";
+import heic2any from "heic2any";
 
 const listingSchema = z.object({
   title: z
@@ -142,7 +142,7 @@ export default function CreateListing() {
     }
   }, [selectedCategory, isEditMode]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
 
     if (images.length + files.length > 5) {
@@ -150,10 +150,38 @@ export default function CreateListing() {
       return;
     }
 
-    const newImages = [...images, ...files];
-    setImages(newImages);
+    const processedFiles: File[] = [];
+    const newPreviews: string[] = [];
 
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    for (const file of files) {
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
+        try {
+          toast.info("Converting HEIC image... Please wait.");
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: "image/png",
+            quality: 0.8,
+          });
+
+          const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+
+          const newFileName = file.name.replace(/\.(heic|heif)$/i, ".png");
+          const convertedFile = new File([finalBlob], newFileName, { type: 'image/png' });
+          processedFiles.push(convertedFile);
+          newPreviews.push(URL.createObjectURL(convertedFile));
+          toast.success("HEIC image converted successfully!");
+        } catch (error) {
+          console.error("Error converting HEIC image:", error);
+          toast.error("Failed to convert HEIC image. Please try another format.");
+        }
+      } else {
+        processedFiles.push(file);
+        newPreviews.push(URL.createObjectURL(file));
+      }
+    }
+
+    setImages([...images, ...processedFiles]);
     setImagePreviews([...imagePreviews, ...newPreviews]);
   };
 
@@ -179,7 +207,7 @@ export default function CreateListing() {
 
   const onSubmit = async (data: ListingFormData) => {
     setIsSubmitting(true);
-    if (images.length === 0) {
+    if (images.length === 0 && imagePreviews.length === 0) {
       toast.error("Please add at least one image");
       setIsSubmitting(false);
       return;
@@ -420,7 +448,7 @@ export default function CreateListing() {
                       <input
                         type="file"
                         multiple
-                        accept="image/*"
+                        accept="image/*,.heic,.heif"
                         onChange={handleImageUpload}
                         className="hidden"
                       />

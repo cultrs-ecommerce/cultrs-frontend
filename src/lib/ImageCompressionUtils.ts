@@ -12,7 +12,7 @@ export interface ValidationResult {
 }
 
 const MAX_IMAGES = 5;
-const MAX_ORIGINAL_SIZE_MB = 5;
+const MAX_ORIGINAL_SIZE_MB = 100; 
 const SUPPORTED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
 
 /**
