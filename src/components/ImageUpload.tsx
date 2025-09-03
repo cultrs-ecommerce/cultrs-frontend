@@ -32,7 +32,7 @@ const ImageUpload = ({
   return (
     <div className="space-y-2 text-center">
       <Avatar className="h-24 w-24 mx-auto">
-        <AvatarImage src={preview || initialImageUrl} />
+        <AvatarImage src={preview || initialImageUrl} className="object-cover" />
         <AvatarFallback>
           <UserIcon className="h-12 w-12" />
         </AvatarFallback>

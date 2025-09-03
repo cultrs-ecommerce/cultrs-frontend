@@ -127,7 +127,7 @@ const ProductDetail = () => {
     if (seller && seller.id !== "unknown" && seller.id !== user.id) {
       try {
         const chatId = await createChat(user.id, seller.id);
-        navigate(`/chat/${chatId}`);
+        navigate(`/chat`);
       } catch (error) {
         console.error("Failed to create or navigate to chat:", error);
       }

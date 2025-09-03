@@ -70,9 +70,9 @@ const Header = () => {
             {/* Logo */}
             <Link to="/" className="text-2xl font-bold text-primary">
               <img
-                src="/transparent_logo.svg"
+                src="/transparent_logo.png"
                 alt="Cultrs Logo"
-                className="h-10"
+                className="h-8 mb-3"
               />
             </Link>
 

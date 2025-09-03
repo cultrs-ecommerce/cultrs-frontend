@@ -17,7 +17,7 @@ const ChatPage: React.FC = () => {
 
   if (isMobile) {
     return (
-      <div className="h-screen">
+      <div className="h-full">
         {selectedChatId ? (
           <ChatView chatId={selectedChatId} onBack={handleBackToList} />
         ) : (
@@ -30,8 +30,8 @@ const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen">
-      <div className="w-1/4 border-r overflow-y-auto p-4 h-90">
+    <div className="flex h-full">
+      <div className="w-1/4 border-r overflow-y-auto p-4">
         <ChatList
           onSelectChat={handleSelectChat}
           selectedChatId={selectedChatId}
