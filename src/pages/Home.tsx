@@ -81,7 +81,7 @@ const Home = () => {
 
           <div className="text-center">
             <Button asChild style={{background: "white"}} variant="outline" size="lg">
-              <Link to="/shop">Explore All New Items</Link>
+              <Link to="/shop">Explore Our Clothing Options</Link>
             </Button>
           </div>
         </div>
