@@ -561,32 +561,44 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
  * @param count The number of listings to retrieve.
  * @returns A promise that resolves to an array of the latest products.
  */
-export const getLatestListings = async (count = 10): Promise<Product[]> => {
+export const getLatestListings = async (count = 4): Promise<ProductWithSeller[][]> => {
+  const clothingCategories = ['Traditional Wear', 'Casual wear', 'Formal Wear', 'Footwear'];
+  const nonClothingCategories = ['Accessories', 'Home Decor', 'Jewelry'];
+
   try {
     const productsRef = collection(db, "products");
-    const q = query(
-      productsRef,
-      where("status", "==", "active"),
-      orderBy("createdAt", "desc"),
-      limit(count)
-    );
-    const querySnapshot = await getDocs(q);
-    const products: Product[] = [];
-    querySnapshot.forEach((doc) => {
-      products.push({ id: doc.id, ...doc.data() } as Product);
-    });
 
-    const productsWithOwners = await Promise.all(products.map(async (product) => {
-      if (product.owner_id) {
-        const userRef = doc(db, "users", product.owner_id);
-        const userSnap = await getDoc(userRef);
-        const ownerName = userSnap.exists() ? (userSnap.data() as any).name : 'Unknown Seller';
-        return { ...product, seller: {name: ownerName} };
-      }
-      return { ...product, seller: {name: 'Unknown Seller'} };
-    }));
+    const fetchProductsByCategory = async (categories: string[]): Promise<ProductWithSeller[]> => {
+      const q = query(
+        productsRef,
+        where("status", "==", "active"),
+        where("category", "in", categories),
+        orderBy("createdAt", "desc"),
+        limit(count)
+      );
+      const querySnapshot = await getDocs(q);
+      const products: Product[] = [];
+      querySnapshot.forEach((doc) => {
+        products.push({ id: doc.id, ...doc.data() } as Product);
+      });
 
-    return productsWithOwners as ProductWithSeller[];
+      const productsWithOwners = await Promise.all(products.map(async (product) => {
+        if (product.owner_id) {
+          const userRef = doc(db, "users", product.owner_id);
+          const userSnap = await getDoc(userRef);
+          const ownerName = userSnap.exists() ? (userSnap.data() as any).name : 'Unknown Seller';
+          return { ...product, seller: {name: ownerName} };
+        }
+        return { ...product, seller: {name: 'Unknown Seller'} };
+      }));
+      return productsWithOwners as ProductWithSeller[];
+    }
+
+    const clothingListings = await fetchProductsByCategory(clothingCategories);
+    const nonClothingListings = await fetchProductsByCategory(nonClothingCategories);
+
+    return [clothingListings, nonClothingListings];
+
   } catch (error) {
     console.error("Error fetching latest listings:", error);
     throw new Error("Failed to fetch latest listings.");

@@ -3,17 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
 import { useEffect, useState } from "react";
-import { fetchProductsAndSellers } from "@/controllers/productController";
+import { getLatestListings } from "@/controllers/productController";
 import Header from "@/components/Header";
 import { ProductWithSeller } from "@/types/ProductWithSeller";
 
 const Home = () => {
-  const [latestListings, setLatestListings] = useState<ProductWithSeller[]>([]);
+  const [clothingListings, setClothingListings] = useState<ProductWithSeller[]>([]);
+  const [nonClothingListings, setNonClothingListings] = useState<ProductWithSeller[]>([]);
 
   useEffect(() => {
     const fetchLatestListings = async () => {
-      const listings = await fetchProductsAndSellers('newlyCreated');
-      setLatestListings(listings.slice(0, 4));
+      const [clothing, nonClothing] = await getLatestListings(4);
+      setClothingListings(clothing);
+      setNonClothingListings(nonClothing);
     };
     fetchLatestListings();
   }, []);
@@ -58,7 +60,47 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-            {latestListings.map((product) => (
+            {clothingListings.map((product) => (
+               <ProductCard
+                key={product.id}
+                id={product.id}
+                title={product.title}
+                price={product.price}
+                image={product.primaryImageUrl}
+                seller={{
+                  name: product.seller.name,
+                  rating: product.seller.rating,
+                  avatar: product.seller.profilePictureUrl,
+                }}
+                condition={product.condition}
+                size={product.sizes[0]}
+                category={product.category}
+              />
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Button asChild style={{background: "white"}} variant="outline" size="lg">
+              <Link to="/shop">Explore All New Items</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Non Clothing Section */}
+      <section className="py-16">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Discover Accessories & More
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Explore a curated selection of accessories, home decor, and jewelry to complement your style.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            {nonClothingListings.map((product) => (
                <ProductCard
                 key={product.id}
                 id={product.id}
@@ -86,7 +128,7 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20">
+      <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto space-y-6">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground">
