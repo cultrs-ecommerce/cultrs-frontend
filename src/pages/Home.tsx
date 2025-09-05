@@ -90,10 +90,9 @@ const Home = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto space-y-6">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-              Have Traditional Clothes to Sell?
+              Have Something You Want To Sell?
             </h2>
             <p className="text-xl text-muted-foreground">
-              Join our community of sellers and give your beautiful garments a new home.
               Earn money while preserving cultural heritage.
             </p>
             <Button asChild size="lg" variant="premium">

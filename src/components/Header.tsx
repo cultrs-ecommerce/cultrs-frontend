@@ -21,12 +21,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { searchProducts } from "@/controllers/productController";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Header = () => {
   const [isAtTop, setIsAtTop] = useState(true);
   const { currentUser, user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -176,6 +179,31 @@ const Header = () => {
             </Link>
           </div>
         </div>
+
+        {isMobile &&
+        <div className="flex justify-center">
+          <nav className="items-center space-x-6">
+            <Link
+              to="/shop"
+              className="text-foreground hover:text-primary transition-smooth font-medium"
+            >
+              Shop
+            </Link>
+            <Link
+              to="/sell"
+              className="text-foreground hover:text-primary transition-smooth font-medium"
+            >
+              Sell
+            </Link>
+            <Link
+              to="/chat"
+              className="text-foreground hover:text-primary transition-smooth font-medium"
+            >
+              Chat
+            </Link>
+          </nav>
+          </div>
+        }
 
         {/* Mobile Search */}
         <div className="mt-4 lg:hidden">
