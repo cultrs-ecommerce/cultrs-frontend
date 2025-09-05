@@ -52,7 +52,7 @@ const Home = () => {
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Newly Added
+              Explore Our Clothing Options
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Fresh additions to our marketplace. Be the first to discover these unique pieces.
@@ -81,7 +81,7 @@ const Home = () => {
 
           <div className="text-center">
             <Button asChild style={{background: "white"}} variant="outline" size="lg">
-              <Link to="/shop">Explore Our Clothing Options</Link>
+              <Link to="/shop">Explore All Items</Link>
             </Button>
           </div>
         </div>
