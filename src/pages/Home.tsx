@@ -147,7 +147,7 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-foreground text-background  px-4 py-12 -mb-8">
+      <footer className="bg-foreground text-background px-4 py-12 -mb-8">
         <div className="container mx-auto text-center">
           <div className="mb-8">
             <h3 className="text-2xl font-bold mb-4">Heritage</h3>
@@ -157,24 +157,26 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <div></div>
             <div>
               <h4 className="font-semibold mb-3">Shop</h4>
               <div className="space-y-2 text-sm text-background/80">
-                <div>Browse All</div>
-                <div>Categories</div>
-                <div>New Arrivals</div>
+                <div><Link to="/shop">Browse All</Link></div>
+                {/* <div><Link>Categories</Link></div> */}
+                <div><Link to="/shop">New Arrivals</Link></div>
               </div>
             </div>
             <div>
               <h4 className="font-semibold mb-3">Sell</h4>
               <div className="space-y-2 text-sm text-background/80">
-                <div>Start Selling</div>
-                <div>Seller Guide</div>
+                <div><Link to="/sell">Start Selling</Link></div>
+                {/* <div>Seller Guide</div> */}
                 <div>Pricing Tips</div>
               </div>
             </div>
-            <div>
+            <div></div>
+            {/* <div>
               <h4 className="font-semibold mb-3">Support</h4>
               <div className="space-y-2 text-sm text-background/80">
                 <div>Help Center</div>
@@ -189,7 +191,7 @@ const Home = () => {
                 <div>Careers</div>
                 <div>Press</div>
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div className="text-sm text-background/60">
